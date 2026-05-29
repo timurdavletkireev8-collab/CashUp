@@ -5,142 +5,129 @@ export default {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Giga Test</title>
+  <title>Giga Tasks</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     body {
       background: #060610;
       color: white;
       font-family: system-ui;
-      padding: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
       margin: 0;
+      padding: 20px;
     }
     button {
-      background: #00b4ff;
+      background: linear-gradient(135deg, #00b4ff, #7c5cfc);
       border: none;
-      padding: 16px;
-      border-radius: 12px;
+      padding: 16px 32px;
+      border-radius: 16px;
       color: white;
-      font-size: 16px;
+      font-size: 18px;
       font-weight: bold;
       cursor: pointer;
       width: 100%;
-      margin-top: 10px;
+      max-width: 300px;
     }
-    .log {
-      background: #1a1a2e;
-      padding: 12px;
-      border-radius: 8px;
+    .status {
       margin-top: 20px;
-      font-size: 12px;
-      font-family: monospace;
-      white-space: pre-wrap;
-      max-height: 400px;
-      overflow-y: auto;
+      font-size: 14px;
+      color: #888;
+      text-align: center;
     }
-    .success { color: #00e5b4; }
-    .error { color: #ff5f7e; }
-    .info { color: #888; }
   </style>
 </head>
 <body>
-<div>
-  <h3>Поиск правильного API Giga.pub</h3>
-  <button id="checkWindow">Проверить window</button>
-  <button id="tryLoad">Загрузить и проверить</button>
-  <div class="log" id="log"></div>
+<div style="text-align: center">
+  <button id="taskBtn">Выполнять задания</button>
+  <div class="status" id="status">Загрузка...</div>
 </div>
 
 <script>
 const tg = window.Telegram.WebApp;
 tg.expand();
+tg.ready();
 
-const logDiv = document.getElementById('log');
+const statusDiv = document.getElementById('status');
+const btn = document.getElementById('taskBtn');
 
-function addLog(msg, type = 'info') {
-  const time = new Date().toLocaleTimeString();
-  logDiv.innerHTML += \`<div class="\${type}">[\${time}] \${msg}</div>\`;
-  logDiv.scrollTop = logDiv.scrollHeight;
-  console.log(msg);
-}
+let gigaInstance = null;
 
-// Проверяем все возможные объекты
-document.getElementById('checkWindow').onclick = function() {
-  addLog('=== ПРОВЕРКА WINDOW ===');
-  const keys = Object.keys(window).filter(k => k.toLowerCase().includes('giga') || k.toLowerCase().includes('offer') || k.toLowerCase().includes('wall'));
-  addLog('Найдено ключей с giga/offer/wall: ' + keys.length);
-  keys.forEach(k => addLog('  - ' + k + ': ' + typeof window[k]));
+// Загружаем и инициализируем SDK
+const script = document.createElement('script');
+script.src = 'https://wall.giga.pub/api/v1/loader.js?projectId=6822';
+script.onload = function() {
+  statusDiv.innerHTML = 'SDK загружен, инициализация...';
   
-  // Проверяем giga
-  if (window.giga) addLog('window.giga есть', 'success');
-  else addLog('window.giga НЕТ', 'error');
+  // Ждем появления функции loadOfferWallSDK
+  let attempts = 0;
+  const interval = setInterval(function() {
+    attempts++;
+    if (window.loadOfferWallSDK) {
+      clearInterval(interval);
+      statusDiv.innerHTML = 'Инициализация...';
+      try {
+        gigaInstance = window.loadOfferWallSDK();
+        statusDiv.innerHTML = '✅ Готово! Нажми на кнопку';
+        statusDiv.style.color = '#00e5b4';
+        btn.disabled = false;
+      } catch(e) {
+        statusDiv.innerHTML = '❌ Ошибка: ' + e.message;
+        statusDiv.style.color = '#ff5f7e';
+      }
+    } else if (attempts > 30) {
+      clearInterval(interval);
+      statusDiv.innerHTML = '❌ Ошибка загрузки SDK';
+      statusDiv.style.color = '#ff5f7e';
+    }
+  }, 200);
+};
+script.onerror = function() {
+  statusDiv.innerHTML = '❌ Ошибка загрузки скрипта';
+  statusDiv.style.color = '#ff5f7e';
+};
+document.head.appendChild(script);
+
+// Кнопка для открытия заданий
+btn.onclick = function() {
+  if (!gigaInstance) {
+    statusDiv.innerHTML = '⏳ Подожди, SDK еще грузится...';
+    return;
+  }
   
-  // Проверяем loadOfferWallSDK
-  if (window.loadOfferWallSDK) addLog('window.loadOfferWallSDK есть', 'success');
-  else addLog('window.loadOfferWallSDK НЕТ', 'error');
+  statusDiv.innerHTML = '🔄 Открываю задания...';
   
-  // Проверяем другие варианты
-  if (window.OfferWall) addLog('window.OfferWall есть', 'success');
-  if (window.gigaWall) addLog('window.gigaWall есть', 'success');
-  if (window.Giga) addLog('window.Giga есть', 'success');
+  try {
+    if (typeof gigaInstance.show === 'function') {
+      gigaInstance.show({
+        onReward: function(reward) {
+          statusDiv.innerHTML = '✅ Задание выполнено! +5 TON';
+          statusDiv.style.color = '#00e5b4';
+          tg.HapticFeedback.notificationOccurred('success');
+          tg.showAlert('Вы получили 5 TON за выполнение задания!');
+        },
+        onClose: function() {
+          statusDiv.innerHTML = '✅ Готово! Нажми на кнопку';
+          statusDiv.style.color = '#00e5b4';
+        },
+        onError: function(error) {
+          statusDiv.innerHTML = '❌ Ошибка: ' + JSON.stringify(error);
+          statusDiv.style.color = '#ff5f7e';
+          tg.HapticFeedback.notificationOccurred('error');
+        }
+      });
+    } else {
+      statusDiv.innerHTML = '❌ Метод show не найден';
+    }
+  } catch(e) {
+    statusDiv.innerHTML = '❌ Ошибка: ' + e.message;
+    statusDiv.style.color = '#ff5f7e';
+  }
 };
 
-// Загружаем и проверяем
-document.getElementById('tryLoad').onclick = function() {
-  addLog('Загружаю SDK...');
-  
-  const script = document.createElement('script');
-  script.src = 'https://wall.giga.pub/api/v1/loader.js?projectId=6822';
-  
-  script.onload = function() {
-    addLog('Скрипт загружен', 'success');
-    setTimeout(() => {
-      addLog('=== ЧЕРЕЗ 1 СЕКУНДУ ===');
-      
-      // Проверяем все глобальные объекты
-      for (let key in window) {
-        if (key.toLowerCase().includes('giga') || key.toLowerCase().includes('offer') || key.toLowerCase().includes('wall')) {
-          addLog('Найден: window.' + key + ' = ' + typeof window[key]);
-        }
-      }
-      
-      // Пробуем вызвать если есть
-      if (window.loadOfferWallSDK && typeof window.loadOfferWallSDK === 'function') {
-        addLog('Вызываю loadOfferWallSDK()...');
-        try {
-          const result = window.loadOfferWallSDK();
-          addLog('Результат: ' + JSON.stringify(result));
-        } catch(e) {
-          addLog('Ошибка: ' + e.message, 'error');
-        }
-      }
-      
-      // Пробуем инициализировать если есть
-      if (window.OfferWall && typeof window.OfferWall.init === 'function') {
-        addLog('Вызываю OfferWall.init()...');
-        try {
-          window.OfferWall.init({ projectId: 6822 });
-          addLog('Инициализация успешна');
-        } catch(e) {
-          addLog('Ошибка: ' + e.message, 'error');
-        }
-      }
-      
-    }, 1000);
-  };
-  
-  script.onerror = function() {
-    addLog('ОШИБКА загрузки скрипта!', 'error');
-  };
-  
-  document.head.appendChild(script);
-};
-
-// Автоматическая проверка при старте
-addLog('Страница загружена, проверяю...');
-setTimeout(() => {
-  document.getElementById('checkWindow').click();
-}, 500);
+btn.disabled = true;
 </script>
 </body>
 </html>`;

@@ -22,13 +22,12 @@ export default {
       return new Response(JSON.stringify({ user, stats }), { headers: { "Content-Type": "application/json" } });
     }
 
-    // Реклама — начисляем 10% рефереру от каждого просмотра
     if (pathname === "/api/reward" && request.method === "POST") {
       const { userId } = await request.json();
       const u = await env.DB.prepare("SELECT * FROM users WHERE userId = ?").bind(userId).first();
       const newCount = (u.totalAdsWatched || 0) + 1;
       const earnAmount = 10;
-      const refBonus = Math.floor(earnAmount * 0.1); // 10% рефереру
+      const refBonus = Math.floor(earnAmount * 0.1);
       await env.DB.batch([
         env.DB.prepare("UPDATE users SET balance = balance + ?, totalAdsWatched = totalAdsWatched + 1 WHERE userId = ?").bind(earnAmount, userId),
         env.DB.prepare("UPDATE stats SET views = views + 1 WHERE id = 'global'")
@@ -42,7 +41,6 @@ export default {
       return new Response(JSON.stringify({ success: true, adsWatched: newCount }), { headers: { "Content-Type": "application/json" } });
     }
 
-    // Задания — начисляем 10% рефереру
     if (pathname === "/api/task-reward" && request.method === "POST") {
       const { userId } = await request.json();
       const u = await env.DB.prepare("SELECT * FROM users WHERE userId = ?").bind(userId).first();
@@ -73,12 +71,11 @@ export default {
       return new Response(JSON.stringify(results), { headers: { "Content-Type": "application/json" } });
     }
 
-    // Вывод средств (Пока только в БД, реальной транзакции TON тут нет)
     if (pathname === "/api/withdraw" && request.method === "POST") {
       const { userId, wallet, amount } = await request.json();
       const u = await env.DB.prepare("SELECT * FROM users WHERE userId = ?").bind(userId).first();
       if (!u) return new Response(JSON.stringify({ error: "Пользователь не найден" }), { status: 404, headers: { "Content-Type": "application/json" } });
-      const MIN_WITHDRAW = 5000; // 0.5 TON в единицах баланса (5000 = 0.5 TON при курсе 1 TON = 10000 единиц)
+      const MIN_WITHDRAW = 5000;
       if ((u.balance || 0) < MIN_WITHDRAW) {
         return new Response(JSON.stringify({ error: "Минимальная сумма вывода — 0.5 TON" }), { status: 400, headers: { "Content-Type": "application/json" } });
       }
@@ -87,7 +84,6 @@ export default {
         return new Response(JSON.stringify({ error: "Недостаточно средств на балансе" }), { status: 400, headers: { "Content-Type": "application/json" } });
       }
       await env.DB.prepare("UPDATE users SET balance = balance - ? WHERE userId = ?").bind(amountUnits, userId).run();
-      // TODO: ИНТЕГРАЦИЯ TON API ДЛЯ РЕАЛЬНОГО ВЫВОДА
       return new Response(JSON.stringify({ success: true }), { headers: { "Content-Type": "application/json" } });
     }
 
@@ -127,8 +123,6 @@ export default {
       color: var(--text);
       overflow: hidden;
     }
-
-    /* BG */
     .bg-mesh {
       position:fixed; inset:0; z-index:0;
       background:
@@ -148,16 +142,12 @@ export default {
                         linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px);
       background-size: 40px 40px;
     }
-
-    /* LAYOUT */
     .app { position:relative; z-index:2; height:100vh; display:flex; flex-direction:column; }
     .scroll-area { flex:1; overflow-y:auto; overflow-x:hidden; padding:14px 14px 108px; scrollbar-width:none; }
     .scroll-area::-webkit-scrollbar { display:none; }
     .tab { display:none; animation: tabIn 0.36s cubic-bezier(0.34,1.5,0.64,1) forwards; }
     .tab.active { display:block; }
     @keyframes tabIn { from { opacity:0; transform:translateY(12px) scale(0.97); } to { opacity:1; transform:translateY(0) scale(1); } }
-
-    /* GLASS */
     .glass {
       background: var(--glass);
       backdrop-filter: var(--blur);
@@ -178,8 +168,6 @@ export default {
       border-radius: inherit;
     }
     .card { padding:20px; margin-bottom:13px; }
-
-    /* HEADER */
     .header-strip {
       display:flex; align-items:center; justify-content:space-between;
       padding:14px 16px 2px;
@@ -213,13 +201,9 @@ export default {
       display:flex; align-items:center; justify-content:center;
       font-weight:800; font-size:14px; color:var(--text);
     }
-
-    /* SECTION HEAD */
     .sec-head { margin-bottom:16px; }
     .sec-title { font-size:22px; font-weight:900; color:var(--text); letter-spacing:-0.6px; margin-bottom:4px; }
     .sec-sub { font-size:13px; color:var(--text-dim); line-height:1.6; }
-
-    /* BUTTONS */
     .btn-primary {
       width:100%; padding:17px 20px; border-radius:16px; border:none; cursor:pointer;
       font-size:15px; font-weight:800; color:#fff;
@@ -251,8 +235,6 @@ export default {
       box-shadow: 0 4px 24px rgba(255,95,126,0.1), inset 0 1px 0 rgba(255,255,255,0.1);
     }
     .btn-danger:active { transform:scale(0.97); opacity:0.85; }
-
-    /* TASK TOGGLE */
     .task-toggle {
       display:flex; gap:6px; margin-bottom:16px;
       background: rgba(255,255,255,0.04);
@@ -271,12 +253,8 @@ export default {
       color:var(--text);
       box-shadow: 0 2px 10px rgba(124,92,252,0.12);
     }
-
-    /* TASK PANES */
     .task-pane { display:none; }
     .task-pane.active { display:block; animation: tabIn 0.3s cubic-bezier(0.34,1.5,0.64,1) forwards; }
-
-    /* SECTION CARD */
     .section-card { padding:26px 22px; margin-bottom:13px; text-align:center; }
     .section-card-icon {
       width:58px; height:58px; border-radius:18px; margin:0 auto 18px;
@@ -313,8 +291,6 @@ export default {
       padding:12px 14px; background:rgba(255,255,255,0.04); border-radius:12px;
       border-left:2px solid rgba(0,180,255,0.32); text-align:left;
     }
-
-    /* PULSE */
     @keyframes pulse-ring {
       0% { transform:scale(1); opacity:0.45; }
       100% { transform:scale(1.13); opacity:0; }
@@ -326,8 +302,6 @@ export default {
       animation:pulse-ring 2.2s ease-out infinite;
       pointer-events:none;
     }
-
-    /* REFERRAL */
     .ref-hero { padding:22px; margin-bottom:13px; text-align:center; }
     .ref-avatar-icon {
       width:58px; height:58px; border-radius:18px; margin:0 auto 14px;
@@ -368,8 +342,6 @@ export default {
       background: rgba(0,180,255,0.14); border:1px solid rgba(0,180,255,0.24);
       border-radius:8px; padding:3px 9px; font-size:12px; font-weight:800; color:var(--accent); margin-left:8px;
     }
-
-    /* PROFILE */
     .prof-hero { display:flex; align-items:center; gap:16px; padding:22px; margin-bottom:13px; }
     .prof-avatar {
       width:64px; height:64px; border-radius:18px; flex-shrink:0;
@@ -395,8 +367,6 @@ export default {
     }
     .trophy-texts .t1 { font-size:15px; font-weight:700; }
     .trophy-texts .t2 { font-size:12px; color:var(--text-dim); margin-top:2px; }
-
-    /* WITHDRAW INPUTS */
     .withdraw-sub { font-size:13px; color:var(--text-dim); line-height:1.65; margin-bottom:20px; }
     .input-label { font-size:11px; font-weight:700; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:7px; }
     .glass-input {
@@ -422,8 +392,6 @@ export default {
       font-size:12px; color:var(--text-mid);
     }
     .withdraw-min b { color:var(--ton); }
-
-    /* INFO */
     .info-card { padding:22px; margin-bottom:13px; }
     .info-title { font-size:16px; font-weight:800; margin-bottom:10px; }
     .info-text { font-size:13px; color:var(--text-dim); line-height:1.8; }
@@ -433,8 +401,6 @@ export default {
       border-radius:7px; padding:2px 8px;
       font-size:11px; font-weight:800; color:var(--ton);
     }
-
-    /* MODAL */
     .modal-bg {
       position:fixed; inset:0; z-index:300;
       background: rgba(0,0,0,0.7);
@@ -486,8 +452,6 @@ export default {
     .ref-prog-num { font-size:10px; color:var(--text-dim); margin-top:3px; }
     .badge-done { font-size:10px; font-weight:800; color:var(--success); text-transform:uppercase; letter-spacing:0.5px; }
     .badge-wait { font-size:10px; font-weight:700; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.5px; }
-
-    /* NAV */
     .nav-dock {
       position:fixed; bottom:0; left:0; right:0; z-index:100;
       padding:0 12px; padding-bottom: max(18px, env(safe-area-inset-bottom));
@@ -512,7 +476,6 @@ export default {
     .nav-item.active span { color:var(--accent); }
     .nav-dot { width:4px; height:4px; border-radius:50%; background:var(--accent); position:absolute; bottom:-1px; opacity:0; transition:opacity 0.28s; box-shadow:0 0 6px var(--accent); }
     .nav-item.active .nav-dot { opacity:1; }
-
     @keyframes spin { to { transform:rotate(360deg); } }
     .spin { animation:spin 0.85s linear infinite; display:inline-block; }
   </style>
@@ -522,7 +485,6 @@ export default {
 <div class="bg-grid"></div>
 
 <div class="app">
-
   <div class="header-strip">
     <div class="header-logo">
       <div class="logo-mark">
@@ -547,18 +509,15 @@ export default {
   </div>
 
   <div class="scroll-area">
-
     <div id="tabTasks" class="tab active">
       <div class="sec-head">
         <div class="sec-title">Задания</div>
         <div class="sec-sub">Выполняй задания и получай вознаграждение в TON</div>
       </div>
-
       <div class="task-toggle">
         <button class="task-toggle-btn active" id="btnHard" onclick="switchTaskPane('hard')">Сложные задания</button>
         <button class="task-toggle-btn" id="btnEasy" onclick="switchTaskPane('easy')">Лёгкие задания</button>
       </div>
-
       <div id="paneHard" class="task-pane active">
         <div class="glass section-card">
           <div class="difficulty-badge badge-hard">
@@ -591,7 +550,6 @@ export default {
           </div>
         </div>
       </div>
-
       <div id="paneEasy" class="task-pane">
         <div class="glass section-card">
           <div class="difficulty-badge badge-easy">
@@ -630,7 +588,6 @@ export default {
         <div class="sec-title">Реклама</div>
         <div class="sec-sub">Смотри рекламу и получай вознаграждение в TON</div>
       </div>
-
       <div class="glass section-card">
         <div class="difficulty-badge badge-ads">
           <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
@@ -674,7 +631,6 @@ export default {
         <div class="sec-title">Рефералы</div>
         <div class="sec-sub">Приглашай друзей и зарабатывай TON вместе</div>
       </div>
-
       <div class="glass ref-hero">
         <div class="ref-avatar-icon">
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
@@ -691,7 +647,6 @@ export default {
           Реферал засчитывается после 15 просмотров рекламы.
         </div>
       </div>
-
       <div class="ref-stats-row">
         <div class="glass ref-stat-card">
           <div class="ref-stat-val" id="refCountMain">0</div>
@@ -702,11 +657,9 @@ export default {
           <div class="ref-stat-label">Заработано TON</div>
         </div>
       </div>
-
       <div class="ref-note">
         Как это работает: друг регистрируется по ссылке → выполняет 15 просмотров рекламы → ты получаешь <b>+0.01 TON</b> за реферала. После этого <b>10% от каждого его действия</b> (реклама и задания) поступает на твой счёт автоматически.
       </div>
-
       <div class="ref-link-label">Твоя реферальная ссылка</div>
       <div class="ref-link-box">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="flex-shrink:0; opacity:0.4;">
@@ -716,7 +669,6 @@ export default {
         <div class="ref-link-text" id="refLinkBox">Загрузка...</div>
         <button class="copy-btn" onclick="copyRef()">Копировать</button>
       </div>
-
       <button class="btn-primary" onclick="shareRef()">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
           <circle cx="18" cy="5" r="3" stroke="currentColor" stroke-width="2"/>
@@ -742,7 +694,6 @@ export default {
     <div id="tabProfile" class="tab">
       <div class="sec-title" style="margin-bottom:4px;">Профиль</div>
       <div class="sec-sub" style="margin-bottom:16px;">Статистика аккаунта</div>
-
       <div class="glass prof-hero">
         <div class="prof-avatar" id="avProf">C</div>
         <div>
@@ -750,7 +701,6 @@ export default {
           <div class="prof-id" id="idProf">ID: —</div>
         </div>
       </div>
-
       <button class="btn-danger" onclick="openWithdraw()" style="margin-bottom: 13px;">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
           <rect x="1" y="4" width="22" height="16" rx="2" stroke="currentColor" stroke-width="2"/>
@@ -759,7 +709,6 @@ export default {
         </svg>
         Вывести средства
       </button>
-
       <div class="glass card">
         <div class="stat-row">
           <div class="stat-label">Баланс</div>
@@ -774,7 +723,6 @@ export default {
           <div class="stat-val" id="profRefs">0</div>
         </div>
       </div>
-
       <div class="glass" style="margin-bottom:13px; overflow:hidden;" onclick="openRating()">
         <div class="trophy-row">
           <div class="trophy-icon-wrap">
@@ -797,7 +745,6 @@ export default {
     <div id="tabInfo" class="tab">
       <div class="sec-title" style="margin-bottom:4px;">О проекте</div>
       <div class="sec-sub" style="margin-bottom:16px;">Официальная информация и связь с командой</div>
-
       <div class="glass info-card">
         <div class="info-title">Как работает CashUp</div>
         <div class="info-text">
@@ -806,7 +753,6 @@ export default {
           Рекламодатели платят за внимание аудитории — пользователи получают прямую долю дохода.
         </div>
       </div>
-
       <div class="glass info-card">
         <div class="info-title">Криптовалюта TON</div>
         <div class="info-text">
@@ -814,7 +760,6 @@ export default {
           Это быстрая и надёжная сеть. Вывод доступен на любой TON-кошелёк от 0.5 TON.
         </div>
       </div>
-
       <button class="btn-primary" onclick="tg.openTelegramLink('https://t.me/')" style="margin-bottom:10px;">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
           <line x1="22" y1="2" x2="11" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -829,8 +774,9 @@ export default {
         Поддержка
       </button>
     </div>
+  </div>
 
-  </div><div class="nav-dock">
+  <div class="nav-dock">
     <div class="nav-inner">
       <div class="nav-item active" id="nav-tasks" onclick="goTab('tabTasks','nav-tasks')">
         <svg viewBox="0 0 24 24" fill="none">
@@ -891,36 +837,15 @@ export default {
     </div>
     <div class="modal-body">
       <div class="withdraw-sub">Выводи TON на любой кошелёк. Минимальная сумма вывода — 0.5 TON.</div>
-      
       <div class="withdraw-min">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="var(--ton)" stroke-width="2"/><path d="M12 8v5l3 2" stroke="var(--ton)" stroke-width="2" stroke-linecap="round"/></svg>
         Минимальная сумма: <b>0.5 TON</b> · Баланс: <b id="withdrawBal">0 TON</b>
       </div>
-
       <div class="input-label">TON-кошелёк</div>
-      <input
-        class="glass-input"
-        id="walletInput"
-        type="text"
-        placeholder="EQA1B2C3...  (адрес TON-кошелька)"
-        autocomplete="off"
-        autocorrect="off"
-        spellcheck="false"
-      />
-
+      <input class="glass-input" id="walletInput" type="text" placeholder="EQA1B2C3...  (адрес TON-кошелька)" autocomplete="off" autocorrect="off" spellcheck="false" />
       <div class="input-label">Сумма вывода (TON)</div>
-      <input
-        class="glass-input"
-        id="amountInput"
-        type="number"
-        placeholder="0.00"
-        min="0.5"
-        step="0.01"
-      />
-
-      <button class="btn-danger" onclick="doWithdraw()">
-        Запросить вывод
-      </button>
+      <input class="glass-input" id="amountInput" type="number" placeholder="0.00" min="0.5" step="0.01" />
+      <button class="btn-danger" onclick="doWithdraw()">Запросить вывод</button>
     </div>
   </div>
 </div>
@@ -1014,7 +939,6 @@ async function syncData() {
   } catch(e) { console.error(e); }
 }
 
-// Реклама
 const Ads = window.Adsgram.init({ blockId: "24601" });
 document.getElementById('btnWatch').onclick = async () => {
   tg.HapticFeedback.impactOccurred('medium');
@@ -1031,7 +955,6 @@ document.getElementById('btnWatch').onclick = async () => {
   } catch(e) { tg.HapticFeedback.notificationOccurred('error'); }
 };
 
-// Инициализация SDK заданий giga.pub
 (function initOfferWall() {
   if (!window.loadOfferWallSDK) {
     const script = document.createElement('script');
@@ -1041,7 +964,6 @@ document.getElementById('btnWatch').onclick = async () => {
   }
 })();
 
-// Функция начисления награды за задание
 async function doTaskReward() {
   try {
     const r = await fetch('/api/task-reward', {
@@ -1058,11 +980,9 @@ async function doTaskReward() {
   } catch(e) { console.error(e); }
 }
 
-// Функция открытия офферволла
 async function openOfferwall() {
   tg.HapticFeedback.impactOccurred('medium');
   
-  // Ждём загрузки SDK (максимум 3 секунды)
   let attempts = 0;
   while (!window.giga && attempts < 30) {
     await new Promise(resolve => setTimeout(resolve, 100));
@@ -1070,7 +990,7 @@ async function openOfferwall() {
   }
   
   if (!window.giga) {
-    tg.showAlert('Загрузка заданий... Подождите секунду и попробуйте снова.');
+    tg.showAlert('Loading tasks... Please wait a moment and try again.');
     return;
   }
   
@@ -1079,7 +999,7 @@ async function openOfferwall() {
       onReward: async (reward) => {
         tg.HapticFeedback.notificationOccurred('success');
         await doTaskReward();
-        tg.showAlert(`Вы получили ${reward?.amount || 5} TON за выполнение задания!`);
+        tg.showAlert('You received ' + (reward?.amount || 5) + ' TON for completing the task!');
       },
       onClose: () => {
         console.log('Offerwall closed');
@@ -1087,21 +1007,19 @@ async function openOfferwall() {
       onError: (error) => {
         console.error('Offerwall error:', error);
         tg.HapticFeedback.notificationOccurred('error');
-        tg.showAlert('Ошибка загрузки заданий. Попробуйте позже.');
+        tg.showAlert('Error loading tasks. Please try again later.');
       }
     });
   } catch(e) {
     console.error(e);
     tg.HapticFeedback.notificationOccurred('error');
-    tg.showAlert('Ошибка открытия заданий. Попробуйте позже.');
+    tg.showAlert('Error opening tasks. Please try again later.');
   }
 }
 
-// Назначаем обработчики на кнопки заданий
 document.getElementById('btnTask').onclick = openOfferwall;
 document.getElementById('btnTaskEasy').onclick = openOfferwall;
 
-// Переключение пейнов заданий
 window.switchTaskPane = (type) => {
   tg.HapticFeedback.selectionChanged();
   document.getElementById('paneHard').classList.toggle('active', type === 'hard');
@@ -1110,28 +1028,26 @@ window.switchTaskPane = (type) => {
   document.getElementById('btnEasy').classList.toggle('active', type === 'easy');
 };
 
-// Модалка вывода
 window.openWithdraw = () => {
   tg.HapticFeedback.impactOccurred('light');
   document.getElementById('modalWithdraw').classList.add('open');
 };
 
-// Вывод средств
 window.doWithdraw = async () => {
   const wallet = document.getElementById('walletInput').value.trim();
   const amount = parseFloat(document.getElementById('amountInput').value);
 
   if (!wallet || wallet.length < 10) {
-    tg.showAlert('Введи корректный адрес TON-кошелька.');
+    tg.showAlert('Enter a valid TON wallet address.');
     return;
   }
   if (!amount || amount < 0.5) {
-    tg.showAlert('Минимальная сумма вывода — 0.5 TON.');
+    tg.showAlert('Minimum withdrawal amount is 0.5 TON.');
     return;
   }
   const balTon = currentBalance / 10000;
   if (amount > balTon) {
-    tg.showAlert('Недостаточно средств на балансе.');
+    tg.showAlert('Insufficient funds in balance.');
     return;
   }
 
@@ -1144,22 +1060,21 @@ window.doWithdraw = async () => {
     const d = await r.json();
     if (d.success) {
       tg.HapticFeedback.notificationOccurred('success');
-      tg.showAlert('Заявка на вывод ' + amount + ' TON отправлена. Обработка в течение 24 часов.');
+      tg.showAlert('Withdrawal request for ' + amount + ' TON has been sent. Processing within 24 hours.');
       document.getElementById('walletInput').value = '';
       document.getElementById('amountInput').value = '';
       closeModal('modalWithdraw');
       syncData();
     } else {
       tg.HapticFeedback.notificationOccurred('error');
-      tg.showAlert(d.error || 'Ошибка при выводе. Попробуй позже.');
+      tg.showAlert(d.error || 'Withdrawal error. Please try again later.');
     }
   } catch(e) {
     tg.HapticFeedback.notificationOccurred('error');
-    tg.showAlert('Ошибка соединения. Попробуй позже.');
+    tg.showAlert('Connection error. Please try again later.');
   }
 };
 
-// Навигация
 window.goTab = (tabId, navId) => {
   tg.HapticFeedback.impactOccurred('light');
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -1168,21 +1083,20 @@ window.goTab = (tabId, navId) => {
   document.getElementById(navId).classList.add('active');
 };
 
-// Реферальная ссылка
 window.shareRef = () => {
   tg.HapticFeedback.impactOccurred('light');
-  const text = 'Присоединяйся к CashUp — зарабатывай TON за задания и просмотр рекламы!';
+  const text = 'Join CashUp - earn TON for completing tasks and watching ads!';
   tg.openTelegramLink('https://t.me/share/url?url=' + encodeURIComponent(refUrl) + '&text=' + encodeURIComponent(text));
 };
+
 window.copyRef = () => {
   navigator.clipboard.writeText(refUrl).catch(() => {});
   tg.HapticFeedback.notificationOccurred('success');
   const btn = document.querySelector('.copy-btn');
-  btn.textContent = 'Скопировано!';
-  setTimeout(() => btn.textContent = 'Копировать', 2000);
+  btn.textContent = 'Copied!';
+  setTimeout(() => btn.textContent = 'Copy', 2000);
 };
 
-// Мои рефералы
 window.openMyRefs = async () => {
   tg.HapticFeedback.impactOccurred('light');
   document.getElementById('modalRefs').classList.add('open');
@@ -1194,33 +1108,33 @@ window.openMyRefs = async () => {
     });
     const list = await r.json();
     if (!list.length) {
-      document.getElementById('bodyRefs').innerHTML = '<div style="text-align:center;padding:40px 20px;color:var(--text-dim);font-size:14px;line-height:1.7;">У вас пока нет рефералов.<br>Поделитесь ссылкой, чтобы начать зарабатывать.</div>';
+      document.getElementById('bodyRefs').innerHTML = '<div style="text-align:center;padding:40px 20px;color:var(--text-dim);font-size:14px;line-height:1.7;">You have no referrals yet.<br>Share your link to start earning.</div>';
       return;
     }
-    let h = '<div style="font-size:11.5px;color:var(--text-dim);margin-bottom:14px;padding:10px 12px;background:rgba(0,180,255,0.06);border-radius:10px;border-left:2px solid rgba(0,180,255,0.38);">Реферал засчитывается после 15 просмотров рекламы</div>';
+    let h = '<div style="font-size:11.5px;color:var(--text-dim);margin-bottom:14px;padding:10px 12px;background:rgba(0,180,255,0.06);border-radius:10px;border-left:2px solid rgba(0,180,255,0.38);">Referral is counted after 15 ad views</div>';
     list.forEach(u => {
       const prog = Math.min(u.totalAdsWatched || 0, 15);
       const done = prog >= 15;
-      h += `<div class="ref-item-m">
-        <div class="ref-av-m">${u.firstName.charAt(0).toUpperCase()}</div>
-        <div class="ref-prog-wrap">
-          <div class="ref-prog-name">${u.firstName}${u.username ? ' <span style="color:var(--text-dim);font-size:11px;">@'+u.username+'</span>' : ''}</div>
-          <div class="ref-prog-bar"><div class="ref-prog-fill" style="width:${(prog/15)*100}%;"></div></div>
-          <div class="ref-prog-num">${prog}/15 просмотров</div>
-        </div>
-        <div>${done ? '<div class="badge-done">Засчитан</div>' : '<div class="badge-wait">В процессе</div>'}</div>
-      </div>`;
+      h += '<div class="ref-item-m">' +
+        '<div class="ref-av-m">' + u.firstName.charAt(0).toUpperCase() + '</div>' +
+        '<div class="ref-prog-wrap">' +
+          '<div class="ref-prog-name">' + u.firstName + (u.username ? ' <span style="color:var(--text-dim);font-size:11px;">@'+u.username+'</span>' : '') + '</div>' +
+          '<div class="ref-prog-bar"><div class="ref-prog-fill" style="width:' + (prog/15)*100 + '%;"></div></div>' +
+          '<div class="ref-prog-num">' + prog + '/15 views</div>' +
+        '</div>' +
+        '<div>' + (done ? '<div class="badge-done">Counted</div>' : '<div class="badge-wait">In progress</div>') + '</div>' +
+      '</div>';
     });
     document.getElementById('bodyRefs').innerHTML = h;
   } catch(e) {}
 };
 
-// Рейтинг
 window.openRating = () => {
   tg.HapticFeedback.impactOccurred('light');
   document.getElementById('modalRating').classList.add('open');
   loadRating('balance');
 };
+
 window.loadRating = async (type) => {
   tg.HapticFeedback.selectionChanged();
   document.getElementById('tgBal').classList.toggle('on', type === 'balance');
@@ -1232,13 +1146,13 @@ window.loadRating = async (type) => {
     const medals = ['', '🥇', '🥈', '🥉'];
     let h = '';
     list.forEach((u, i) => {
-      const val = type === 'balance' ? u.balance.toLocaleString() + ' TON' : (u.referrals || 0) + ' реф.';
+      const val = type === 'balance' ? u.balance.toLocaleString() + ' TON' : (u.referrals || 0) + ' ref.';
       const pos = i < 3
-        ? `<div class="r-pos" style="font-size:18px;">${medals[i+1]}</div>`
-        : `<div class="r-pos" style="color:var(--text-dim);">#${i+1}</div>`;
-      h += `<div class="r-row">${pos}<div class="r-name">${u.firstName}</div><div class="r-val">${val}</div></div>`;
+        ? '<div class="r-pos" style="font-size:18px;">' + medals[i+1] + '</div>'
+        : '<div class="r-pos" style="color:var(--text-dim);">#' + (i+1) + '</div>';
+      h += '<div class="r-row">' + pos + '<div class="r-name">' + u.firstName + '</div><div class="r-val">' + val + '</div></div>';
     });
-    document.getElementById('ratingList').innerHTML = h || '<div style="text-align:center;padding:20px;color:var(--text-dim);">Нет данных</div>';
+    document.getElementById('ratingList').innerHTML = h || '<div style="text-align:center;padding:20px;color:var(--text-dim);">No data</div>';
   } catch(e) {}
 };
 
@@ -1246,6 +1160,7 @@ window.closeModal = (id) => {
   tg.HapticFeedback.impactOccurred('light');
   document.getElementById(id).classList.remove('open');
 };
+
 window.bgClose = (id, e) => {
   if (e.target === document.getElementById(id)) closeModal(id);
 };

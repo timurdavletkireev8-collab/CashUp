@@ -2,6 +2,7 @@ export default {
   async fetch(request, env, ctx) {
     const { pathname } = new URL(request.url);
 
+    // API: регистрация/получение пользователя
     if (pathname === "/api/user" && request.method === "POST") {
       const { userId, firstName, username, refBy } = await request.json();
       const existing = await env.DB.prepare("SELECT * FROM users WHERE userId = ?").bind(userId).first();
@@ -22,6 +23,7 @@ export default {
       return new Response(JSON.stringify({ user, stats }), { headers: { "Content-Type": "application/json" } });
     }
 
+    // API: награда за рекламу
     if (pathname === "/api/reward" && request.method === "POST") {
       const { userId } = await request.json();
       const u = await env.DB.prepare("SELECT * FROM users WHERE userId = ?").bind(userId).first();
@@ -41,6 +43,7 @@ export default {
       return new Response(JSON.stringify({ success: true, adsWatched: newCount }), { headers: { "Content-Type": "application/json" } });
     }
 
+    // API: награда за задание (вызывается из JavaScript)
     if (pathname === "/api/task-reward" && request.method === "POST") {
       const { userId } = await request.json();
       const u = await env.DB.prepare("SELECT * FROM users WHERE userId = ?").bind(userId).first();
@@ -56,6 +59,52 @@ export default {
       return new Response(JSON.stringify({ success: true }), { headers: { "Content-Type": "application/json" } });
     }
 
+    // API: POSTBACK от Giga.pub (более надёжный способ получения награды)
+    if (pathname === "/api/postback" && request.method === "GET") {
+      try {
+        const url = new URL(request.url);
+        const userId = url.searchParams.get('user');
+        const amount = url.searchParams.get('amount');
+        const rewardId = url.searchParams.get('rewardId');
+        const hash = url.searchParams.get('hash');
+        
+        console.log(`Postback received: user=${userId}, amount=${amount}, rewardId=${rewardId}`);
+        
+        if (!userId) {
+          return new Response(JSON.stringify({ error: "No user" }), { status: 400 });
+        }
+        
+        // Проверяем существование пользователя
+        const u = await env.DB.prepare("SELECT * FROM users WHERE userId = ?").bind(userId).first();
+        if (!u) {
+          return new Response(JSON.stringify({ error: "User not found" }), { status: 404 });
+        }
+        
+        // Начисляем награду (5 TON = 5000 единиц)
+        const earnAmount = 5;
+        const refBonus = Math.floor(earnAmount * 0.1);
+        
+        await env.DB.batch([
+          env.DB.prepare("UPDATE users SET balance = balance + ? WHERE userId = ?").bind(earnAmount, userId),
+          env.DB.prepare("UPDATE stats SET views = views + 1 WHERE id = 'global'")
+        ]);
+        
+        // Начисляем 10% рефереру
+        if (u.referredBy && refBonus > 0) {
+          await env.DB.prepare("UPDATE users SET balance = balance + ? WHERE userId = ?").bind(refBonus, u.referredBy).run();
+        }
+        
+        return new Response(JSON.stringify({ status: "ok" }), { 
+          headers: { "Content-Type": "application/json" } 
+        });
+        
+      } catch(e) {
+        console.error('Postback error:', e);
+        return new Response(JSON.stringify({ error: e.message }), { status: 500 });
+      }
+    }
+
+    // API: рейтинг
     if (pathname === "/api/rating") {
       const type = new URL(request.url).searchParams.get('type') || 'balance';
       const orderField = type === 'referrals' ? 'referrals' : 'balance';
@@ -63,6 +112,7 @@ export default {
       return new Response(JSON.stringify(results), { headers: { "Content-Type": "application/json" } });
     }
 
+    // API: мои рефералы
     if (pathname === "/api/my-referrals" && request.method === "POST") {
       const { userId } = await request.json();
       const { results } = await env.DB.prepare(
@@ -71,6 +121,7 @@ export default {
       return new Response(JSON.stringify(results), { headers: { "Content-Type": "application/json" } });
     }
 
+    // API: вывод средств
     if (pathname === "/api/withdraw" && request.method === "POST") {
       const { userId, wallet, amount } = await request.json();
       const u = await env.DB.prepare("SELECT * FROM users WHERE userId = ?").bind(userId).first();
@@ -87,6 +138,7 @@ export default {
       return new Response(JSON.stringify({ success: true }), { headers: { "Content-Type": "application/json" } });
     }
 
+    // HTML страница
     const html = `<!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -919,7 +971,7 @@ async function syncData() {
     const u = d.user;
 
     currentBalance = u.balance || 0;
-    const bal = u.balance.toLocaleString();
+    const bal = (u.balance / 10000).toFixed(4);
     const refs = u.referrals || 0;
     const ads = u.totalAdsWatched || 0;
     const ini = u.firstName.charAt(0).toUpperCase();
@@ -931,7 +983,7 @@ async function syncData() {
     document.getElementById('refBadge').textContent = refs;
     document.getElementById('refCountMain').textContent = refs;
     document.getElementById('refEarnMain').textContent = (refs * 0.01).toFixed(3);
-    document.getElementById('withdrawBal').textContent = (currentBalance / 10000).toFixed(4) + ' TON';
+    document.getElementById('withdrawBal').textContent = bal + ' TON';
 
     ['avHead','avProf'].forEach(id => document.getElementById(id).textContent = ini);
     ['nameHead','nameProf'].forEach(id => document.getElementById(id).textContent = u.firstName);
@@ -966,6 +1018,7 @@ window.loadGigaSDKCallbacks.push(() => {
       gigaSDK = sdk;
       console.log('Giga SDK initialized');
       
+      // Слушаем событие получения награды
       sdk.on('rewardClaim', async (data) => {
         console.log('Reward claim received:', data);
         await doTaskReward();
@@ -1158,7 +1211,7 @@ window.loadRating = async (type) => {
     const medals = ['', '🥇', '🥈', '🥉'];
     let h = '';
     list.forEach((u, i) => {
-      const val = type === 'balance' ? u.balance.toLocaleString() + ' TON' : (u.referrals || 0) + ' реф.';
+      const val = type === 'balance' ? (u.balance / 10000).toFixed(4) + ' TON' : (u.referrals || 0) + ' реф.';
       const pos = i < 3
         ? '<div class="r-pos" style="font-size:18px;">' + medals[i+1] + '</div>'
         : '<div class="r-pos" style="color:var(--text-dim);">#' + (i+1) + '</div>';

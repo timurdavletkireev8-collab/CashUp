@@ -1031,27 +1031,75 @@ document.getElementById('btnWatch').onclick = async () => {
   } catch(e) { tg.HapticFeedback.notificationOccurred('error'); }
 };
 
-// Задания
+// Инициализация SDK заданий giga.pub
+(function initOfferWall() {
+  if (!window.loadOfferWallSDK) {
+    const script = document.createElement('script');
+    script.src = 'https://wall.giga.pub/api/v1/loader.js?projectId=6822';
+    script.async = true;
+    document.head.appendChild(script);
+  }
+})();
+
+// Функция начисления награды за задание
 async function doTaskReward() {
   try {
-    await fetch('/api/task-reward', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+    const r = await fetch('/api/task-reward', {
+      method: 'POST', 
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId })
     });
-    tg.HapticFeedback.notificationOccurred('success');
-    syncData();
-  } catch(e) {}
+    const data = await r.json();
+    if (data.success) {
+      tg.HapticFeedback.notificationOccurred('success');
+      syncData();
+    }
+    return data;
+  } catch(e) { console.error(e); }
 }
-document.getElementById('btnTask').onclick = () => {
+
+// Функция открытия офферволла
+async function openOfferwall() {
   tg.HapticFeedback.impactOccurred('medium');
-  tg.openTelegramLink('https://t.me/linknibot/app?startapp=x_lkfh');
-  doTaskReward();
-};
-document.getElementById('btnTaskEasy').onclick = () => {
-  tg.HapticFeedback.impactOccurred('medium');
-  tg.openTelegramLink('https://t.me/linknibot/app?startapp=x_lkfh');
-  doTaskReward();
-};
+  
+  // Ждём загрузки SDK (максимум 3 секунды)
+  let attempts = 0;
+  while (!window.giga && attempts < 30) {
+    await new Promise(resolve => setTimeout(resolve, 100));
+    attempts++;
+  }
+  
+  if (!window.giga) {
+    tg.showAlert('Загрузка заданий... Подождите секунду и попробуйте снова.');
+    return;
+  }
+  
+  try {
+    window.giga.show({
+      onReward: async (reward) => {
+        tg.HapticFeedback.notificationOccurred('success');
+        await doTaskReward();
+        tg.showAlert(`Вы получили ${reward?.amount || 5} TON за выполнение задания!`);
+      },
+      onClose: () => {
+        console.log('Offerwall closed');
+      },
+      onError: (error) => {
+        console.error('Offerwall error:', error);
+        tg.HapticFeedback.notificationOccurred('error');
+        tg.showAlert('Ошибка загрузки заданий. Попробуйте позже.');
+      }
+    });
+  } catch(e) {
+    console.error(e);
+    tg.HapticFeedback.notificationOccurred('error');
+    tg.showAlert('Ошибка открытия заданий. Попробуйте позже.');
+  }
+}
+
+// Назначаем обработчики на кнопки заданий
+document.getElementById('btnTask').onclick = openOfferwall;
+document.getElementById('btnTaskEasy').onclick = openOfferwall;
 
 // Переключение пейнов заданий
 window.switchTaskPane = (type) => {
@@ -1153,15 +1201,15 @@ window.openMyRefs = async () => {
     list.forEach(u => {
       const prog = Math.min(u.totalAdsWatched || 0, 15);
       const done = prog >= 15;
-      h += \`<div class="ref-item-m">
-        <div class="ref-av-m">\${u.firstName.charAt(0).toUpperCase()}</div>
+      h += `<div class="ref-item-m">
+        <div class="ref-av-m">${u.firstName.charAt(0).toUpperCase()}</div>
         <div class="ref-prog-wrap">
-          <div class="ref-prog-name">\${u.firstName}\${u.username ? ' <span style="color:var(--text-dim);font-size:11px;">@'+u.username+'</span>' : ''}</div>
-          <div class="ref-prog-bar"><div class="ref-prog-fill" style="width:\${(prog/15)*100}%;"></div></div>
-          <div class="ref-prog-num">\${prog}/15 просмотров</div>
+          <div class="ref-prog-name">${u.firstName}${u.username ? ' <span style="color:var(--text-dim);font-size:11px;">@'+u.username+'</span>' : ''}</div>
+          <div class="ref-prog-bar"><div class="ref-prog-fill" style="width:${(prog/15)*100}%;"></div></div>
+          <div class="ref-prog-num">${prog}/15 просмотров</div>
         </div>
-        <div>\${done ? '<div class="badge-done">Засчитан</div>' : '<div class="badge-wait">В процессе</div>'}</div>
-      </div>\`;
+        <div>${done ? '<div class="badge-done">Засчитан</div>' : '<div class="badge-wait">В процессе</div>'}</div>
+      </div>`;
     });
     document.getElementById('bodyRefs').innerHTML = h;
   } catch(e) {}
@@ -1186,9 +1234,9 @@ window.loadRating = async (type) => {
     list.forEach((u, i) => {
       const val = type === 'balance' ? u.balance.toLocaleString() + ' TON' : (u.referrals || 0) + ' реф.';
       const pos = i < 3
-        ? \`<div class="r-pos" style="font-size:18px;">\${medals[i+1]}</div>\`
-        : \`<div class="r-pos" style="color:var(--text-dim);">#\${i+1}</div>\`;
-      h += \`<div class="r-row">\${pos}<div class="r-name">\${u.firstName}</div><div class="r-val">\${val}</div></div>\`;
+        ? `<div class="r-pos" style="font-size:18px;">${medals[i+1]}</div>`
+        : `<div class="r-pos" style="color:var(--text-dim);">#${i+1}</div>`;
+      h += `<div class="r-row">${pos}<div class="r-name">${u.firstName}</div><div class="r-val">${val}</div></div>`;
     });
     document.getElementById('ratingList').innerHTML = h || '<div style="text-align:center;padding:20px;color:var(--text-dim);">Нет данных</div>';
   } catch(e) {}
@@ -1207,5 +1255,6 @@ syncData();
 </body>
 </html>`;
 
+    return new Response(html, { headers: { "content-type": "text/html;charset=UTF-8" } });
   }
 };

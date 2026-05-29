@@ -1,3 +1,9 @@
 name = "bot"
 main = "worker.js"
 compatibility_date = "2026-05-29"
+
+# Секция для подключения D1
+[[d1_databases]]
+binding = "DB"
+database_name = "cashminiapp"
+database_id = "00fb2067-5fc2-4e9f-866a-0264c2b344ef"

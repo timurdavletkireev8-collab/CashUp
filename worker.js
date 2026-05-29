@@ -73,7 +73,7 @@ export default {
       return new Response(JSON.stringify(results), { headers: { "Content-Type": "application/json" } });
     }
 
-    // Вывод средств
+    // Вывод средств (Пока только в БД, реальной транзакции TON тут нет)
     if (pathname === "/api/withdraw" && request.method === "POST") {
       const { userId, wallet, amount } = await request.json();
       const u = await env.DB.prepare("SELECT * FROM users WHERE userId = ?").bind(userId).first();
@@ -87,7 +87,7 @@ export default {
         return new Response(JSON.stringify({ error: "Недостаточно средств на балансе" }), { status: 400, headers: { "Content-Type": "application/json" } });
       }
       await env.DB.prepare("UPDATE users SET balance = balance - ? WHERE userId = ?").bind(amountUnits, userId).run();
-      // Здесь можно сохранить заявку в таблицу withdrawals
+      // TODO: ИНТЕГРАЦИЯ TON API ДЛЯ РЕАЛЬНОГО ВЫВОДА
       return new Response(JSON.stringify({ success: true }), { headers: { "Content-Type": "application/json" } });
     }
 
@@ -276,7 +276,7 @@ export default {
     .task-pane { display:none; }
     .task-pane.active { display:block; animation: tabIn 0.3s cubic-bezier(0.34,1.5,0.64,1) forwards; }
 
-    /* SECTION CARD — универсальная для заданий и рекламы */
+    /* SECTION CARD */
     .section-card { padding:26px 22px; margin-bottom:13px; text-align:center; }
     .section-card-icon {
       width:58px; height:58px; border-radius:18px; margin:0 auto 18px;
@@ -396,9 +396,7 @@ export default {
     .trophy-texts .t1 { font-size:15px; font-weight:700; }
     .trophy-texts .t2 { font-size:12px; color:var(--text-dim); margin-top:2px; }
 
-    /* WITHDRAW */
-    .withdraw-card { padding:24px 20px; margin-bottom:13px; }
-    .withdraw-title { font-size:16px; font-weight:800; margin-bottom:6px; }
+    /* WITHDRAW INPUTS */
     .withdraw-sub { font-size:13px; color:var(--text-dim); line-height:1.65; margin-bottom:20px; }
     .input-label { font-size:11px; font-weight:700; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:7px; }
     .glass-input {
@@ -525,7 +523,6 @@ export default {
 
 <div class="app">
 
-  <!-- HEADER -->
   <div class="header-strip">
     <div class="header-logo">
       <div class="logo-mark">
@@ -549,10 +546,8 @@ export default {
     </div>
   </div>
 
-  <!-- SCROLL -->
   <div class="scroll-area">
 
-    <!-- ===== TAB: ЗАДАНИЯ ===== -->
     <div id="tabTasks" class="tab active">
       <div class="sec-head">
         <div class="sec-title">Задания</div>
@@ -564,7 +559,6 @@ export default {
         <button class="task-toggle-btn" id="btnEasy" onclick="switchTaskPane('easy')">Лёгкие задания</button>
       </div>
 
-      <!-- СЛОЖНЫЕ -->
       <div id="paneHard" class="task-pane active">
         <div class="glass section-card">
           <div class="difficulty-badge badge-hard">
@@ -598,7 +592,6 @@ export default {
         </div>
       </div>
 
-      <!-- ЛЁГКИЕ -->
       <div id="paneEasy" class="task-pane">
         <div class="glass section-card">
           <div class="difficulty-badge badge-easy">
@@ -632,7 +625,6 @@ export default {
       </div>
     </div>
 
-    <!-- ===== TAB: РЕКЛАМА ===== -->
     <div id="tabAds" class="tab">
       <div class="sec-head">
         <div class="sec-title">Реклама</div>
@@ -675,18 +667,8 @@ export default {
           Вывод доступен от 0.5 TON. Все выплаты в криптовалюте TON.
         </div>
       </div>
-
-      <div style="display:flex; align-items:center; justify-content:space-between; padding:0 2px; margin-bottom:10px;">
-        <div style="font-size:12px; color:var(--text-dim); font-weight:600;">Общий прогресс сообщества</div>
-        <div style="font-size:12px; font-weight:800; color:var(--accent);" id="pctMain">0%</div>
-      </div>
-      <div style="height:4px; background:rgba(255,255,255,0.08); border-radius:99px; overflow:hidden; margin-bottom:6px;">
-        <div id="fillMain" style="height:100%; width:0%; border-radius:99px; background:linear-gradient(90deg,var(--accent),var(--accent2)); transition:width 1.2s cubic-bezier(0.4,0,0.2,1); box-shadow:0 0 10px rgba(0,180,255,0.6);"></div>
-      </div>
-      <div style="font-size:11px; color:var(--text-dim); text-align:right; margin-bottom:16px;">Просмотров: <strong id="viewsMain" style="color:var(--text);">0</strong></div>
     </div>
 
-    <!-- ===== TAB: РЕФЕРАЛЫ ===== -->
     <div id="tabRef" class="tab">
       <div class="sec-head">
         <div class="sec-title">Рефералы</div>
@@ -757,7 +739,6 @@ export default {
       </button>
     </div>
 
-    <!-- ===== TAB: ПРОФИЛЬ ===== -->
     <div id="tabProfile" class="tab">
       <div class="sec-title" style="margin-bottom:4px;">Профиль</div>
       <div class="sec-sub" style="margin-bottom:16px;">Статистика аккаунта</div>
@@ -769,6 +750,15 @@ export default {
           <div class="prof-id" id="idProf">ID: —</div>
         </div>
       </div>
+
+      <button class="btn-danger" onclick="openWithdraw()" style="margin-bottom: 13px;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+          <rect x="1" y="4" width="22" height="16" rx="2" stroke="currentColor" stroke-width="2"/>
+          <path d="M1 10h22" stroke="currentColor" stroke-width="2"/>
+          <path d="M12 15v2M9 17h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+        Вывести средства
+      </button>
 
       <div class="glass card">
         <div class="stat-row">
@@ -802,50 +792,8 @@ export default {
           </svg>
         </div>
       </div>
-
-      <!-- ВЫВОД СРЕДСТВ -->
-      <div class="glass withdraw-card">
-        <div class="withdraw-title">Вывод средств</div>
-        <div class="withdraw-sub">Выводи TON на любой кошелёк. Минимальная сумма вывода — 0.5 TON.</div>
-
-        <div class="withdraw-min">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="var(--ton)" stroke-width="2"/><path d="M12 8v5l3 2" stroke="var(--ton)" stroke-width="2" stroke-linecap="round"/></svg>
-          Минимальная сумма: <b>0.5 TON</b> · Баланс: <b id="withdrawBal">0 TON</b>
-        </div>
-
-        <div class="input-label">TON-кошелёк</div>
-        <input
-          class="glass-input"
-          id="walletInput"
-          type="text"
-          placeholder="EQA1B2C3...  (адрес TON-кошелька)"
-          autocomplete="off"
-          autocorrect="off"
-          spellcheck="false"
-        />
-
-        <div class="input-label">Сумма вывода (TON)</div>
-        <input
-          class="glass-input"
-          id="amountInput"
-          type="number"
-          placeholder="0.00"
-          min="0.5"
-          step="0.01"
-        />
-
-        <button class="btn-danger" onclick="doWithdraw()">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
-            <rect x="1" y="4" width="22" height="16" rx="2" stroke="currentColor" stroke-width="2"/>
-            <path d="M1 10h22" stroke="currentColor" stroke-width="2"/>
-            <path d="M12 15v2M9 17h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-          </svg>
-          Запросить вывод
-        </button>
-      </div>
     </div>
 
-    <!-- ===== TAB: ИНФО ===== -->
     <div id="tabInfo" class="tab">
       <div class="sec-title" style="margin-bottom:4px;">О проекте</div>
       <div class="sec-sub" style="margin-bottom:16px;">Официальная информация и связь с командой</div>
@@ -882,10 +830,7 @@ export default {
       </button>
     </div>
 
-  </div><!-- /scroll-area -->
-
-  <!-- NAV -->
-  <div class="nav-dock">
+  </div><div class="nav-dock">
     <div class="nav-inner">
       <div class="nav-item active" id="nav-tasks" onclick="goTab('tabTasks','nav-tasks')">
         <svg viewBox="0 0 24 24" fill="none">
@@ -935,7 +880,51 @@ export default {
   </div>
 </div>
 
-<!-- MODAL: РЕФЕРАЛЫ -->
+<div class="modal-bg" id="modalWithdraw" onclick="bgClose('modalWithdraw',event)">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-head">
+      <h3>Вывод средств</h3>
+      <button class="modal-x" onclick="closeModal('modalWithdraw')">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="withdraw-sub">Выводи TON на любой кошелёк. Минимальная сумма вывода — 0.5 TON.</div>
+      
+      <div class="withdraw-min">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="var(--ton)" stroke-width="2"/><path d="M12 8v5l3 2" stroke="var(--ton)" stroke-width="2" stroke-linecap="round"/></svg>
+        Минимальная сумма: <b>0.5 TON</b> · Баланс: <b id="withdrawBal">0 TON</b>
+      </div>
+
+      <div class="input-label">TON-кошелёк</div>
+      <input
+        class="glass-input"
+        id="walletInput"
+        type="text"
+        placeholder="EQA1B2C3...  (адрес TON-кошелька)"
+        autocomplete="off"
+        autocorrect="off"
+        spellcheck="false"
+      />
+
+      <div class="input-label">Сумма вывода (TON)</div>
+      <input
+        class="glass-input"
+        id="amountInput"
+        type="number"
+        placeholder="0.00"
+        min="0.5"
+        step="0.01"
+      />
+
+      <button class="btn-danger" onclick="doWithdraw()">
+        Запросить вывод
+      </button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg" id="modalRefs" onclick="bgClose('modalRefs',event)">
   <div class="modal-sheet">
     <div class="modal-handle"></div>
@@ -953,7 +942,6 @@ export default {
   </div>
 </div>
 
-<!-- MODAL: РЕЙТИНГ -->
 <div class="modal-bg" id="modalRating" onclick="bgClose('modalRating',event)">
   <div class="modal-sheet">
     <div class="modal-handle"></div>
@@ -1003,7 +991,6 @@ async function syncData() {
     });
     const d = await r.json();
     const u = d.user;
-    const s = d.stats;
 
     currentBalance = u.balance || 0;
     const bal = u.balance.toLocaleString();
@@ -1023,11 +1010,6 @@ async function syncData() {
     ['avHead','avProf'].forEach(id => document.getElementById(id).textContent = ini);
     ['nameHead','nameProf'].forEach(id => document.getElementById(id).textContent = u.firstName);
     document.getElementById('idProf').textContent = 'ID: ' + userId;
-
-    const p = Math.min((s.views / 100000) * 100, 100);
-    document.getElementById('pctMain').textContent = p.toFixed(1) + '%';
-    document.getElementById('fillMain').style.width = p + '%';
-    document.getElementById('viewsMain').textContent = s.views.toLocaleString();
     document.getElementById('refLinkBox').textContent = refUrl;
   } catch(e) { console.error(e); }
 }
@@ -1080,6 +1062,12 @@ window.switchTaskPane = (type) => {
   document.getElementById('btnEasy').classList.toggle('active', type === 'easy');
 };
 
+// Модалка вывода
+window.openWithdraw = () => {
+  tg.HapticFeedback.impactOccurred('light');
+  document.getElementById('modalWithdraw').classList.add('open');
+};
+
 // Вывод средств
 window.doWithdraw = async () => {
   const wallet = document.getElementById('walletInput').value.trim();
@@ -1111,6 +1099,7 @@ window.doWithdraw = async () => {
       tg.showAlert('Заявка на вывод ' + amount + ' TON отправлена. Обработка в течение 24 часов.');
       document.getElementById('walletInput').value = '';
       document.getElementById('amountInput').value = '';
+      closeModal('modalWithdraw');
       syncData();
     } else {
       tg.HapticFeedback.notificationOccurred('error');

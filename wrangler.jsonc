@@ -1,6 +1,6 @@
 {
   "name": "cash-miniapp",
-  "main": "index.js",
+  "main": "worker.js",
   "compatibility_date": "2026-05-29",
   "observability": {
     "enabled": false,

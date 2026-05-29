@@ -1,4 +1,7 @@
 {
+  "name": "cash-miniapp",
+  "main": "index.js",
+  "compatibility_date": "2026-05-29",
   "observability": {
     "enabled": false,
     "head_sampling_rate": 1,

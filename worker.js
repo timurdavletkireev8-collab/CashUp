@@ -5,7 +5,7 @@ export default {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Giga Debug</title>
+  <title>Giga Test</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     body {
@@ -13,7 +13,6 @@ export default {
       color: white;
       font-family: system-ui;
       padding: 20px;
-      margin: 0;
     }
     button {
       background: #00b4ff;
@@ -34,21 +33,19 @@ export default {
       margin-top: 20px;
       font-size: 12px;
       font-family: monospace;
-      white-space: pre-wrap;
-      max-height: 500px;
+      max-height: 400px;
       overflow-y: auto;
     }
     .success { color: #00e5b4; }
     .error { color: #ff5f7e; }
-    .info { color: #888; }
   </style>
 </head>
 <body>
 <div>
-  <h3>Отладка Giga.pub</h3>
-  <button id="initBtn">1. Инициализировать SDK</button>
-  <button id="methodsBtn">2. Показать методы</button>
-  <button id="openBtn">3. Открыть задания</button>
+  <h3>Giga.pub - альтернативные методы</h3>
+  <button id="method1">Метод 1: OfferWallSDKLoader</button>
+  <button id="method2">Метод 2: Прямой вызов</button>
+  <button id="method3">Метод 3: window.Giga</button>
   <div class="log" id="log"></div>
 </div>
 
@@ -57,119 +54,76 @@ const tg = window.Telegram.WebApp;
 tg.expand();
 
 const logDiv = document.getElementById('log');
-let gigaObject = null;
 
 function addLog(msg, type = 'info') {
   const time = new Date().toLocaleTimeString();
   logDiv.innerHTML += \`<div class="\${type}">[\${time}] \${msg}</div>\`;
   logDiv.scrollTop = logDiv.scrollHeight;
-  console.log(msg);
 }
 
 // Загружаем SDK
 const script = document.createElement('script');
 script.src = 'https://wall.giga.pub/api/v1/loader.js?projectId=6822';
-script.onload = function() {
-  addLog('✅ SDK скрипт загружен', 'success');
-  addLog('window.loadOfferWallSDK: ' + typeof window.loadOfferWallSDK);
-};
+script.onload = () => addLog('✅ SDK загружен', 'success');
 document.head.appendChild(script);
 
-// Кнопка инициализации
-document.getElementById('initBtn').onclick = function() {
-  if (!window.loadOfferWallSDK) {
-    addLog('❌ loadOfferWallSDK не найден! Ждите загрузки скрипта', 'error');
-    return;
-  }
-  
-  addLog('Вызываю loadOfferWallSDK()...');
-  try {
-    gigaObject = window.loadOfferWallSDK();
-    addLog('✅ Результат: ' + typeof gigaObject, 'success');
-    addLog('Объект: ' + JSON.stringify(gigaObject));
-    
-    // Показываем все ключи объекта
-    if (gigaObject && typeof gigaObject === 'object') {
-      const keys = Object.keys(gigaObject);
-      addLog('Ключи объекта: ' + keys.join(', '));
-    } else {
-      addLog('Объект не является объектом, это: ' + typeof gigaObject);
+// Метод 1: OfferWallSDKLoader
+document.getElementById('method1').onclick = function() {
+  addLog('Пробуем OfferWallSDKLoader...');
+  if (window.OfferWallSDKLoader) {
+    addLog('OfferWallSDKLoader найден, тип: ' + typeof window.OfferWallSDKLoader);
+    try {
+      const result = window.OfferWallSDKLoader.init({ projectId: 6822 });
+      addLog('init результат: ' + JSON.stringify(result));
+    } catch(e) {
+      addLog('Ошибка: ' + e.message, 'error');
     }
-  } catch(e) {
-    addLog('❌ Ошибка: ' + e.message, 'error');
+  } else {
+    addLog('OfferWallSDKLoader не найден', 'error');
   }
 };
 
-// Кнопка показа методов
-document.getElementById('methodsBtn').onclick = function() {
-  if (!gigaObject) {
-    addLog('❌ Сначала нажми "Инициализировать SDK"', 'error');
-    return;
-  }
+// Метод 2: Прямой вызов через data-атрибуты
+document.getElementById('method2').onclick = function() {
+  addLog('Пробуем прямой вызов через DOM...');
   
-  addLog('=== ДОСТУПНЫЕ МЕТОДЫ ===');
+  // Создаем div для виджета
+  const widgetDiv = document.createElement('div');
+  widgetDiv.setAttribute('data-giga-widget', 'offerwall');
+  widgetDiv.setAttribute('data-project-id', '6822');
+  widgetDiv.style.width = '100%';
+  widgetDiv.style.height = '500px';
+  widgetDiv.style.position = 'fixed';
+  widgetDiv.style.top = '0';
+  widgetDiv.style.left = '0';
+  widgetDiv.style.zIndex = '1000';
+  widgetDiv.style.background = '#060610';
   
-  // Проверяем возможные методы
-  const possibleMethods = ['show', 'open', 'start', 'init', 'load', 'display', 'showWall', 'openWall', 'showOfferwall'];
-  
-  possibleMethods.forEach(method => {
-    if (typeof gigaObject[method] === 'function') {
-      addLog('✅ Есть метод: ' + method, 'success');
-    } else {
-      addLog('❌ Нет метода: ' + method);
-    }
-  });
-  
-  // Показываем все свойства
-  if (gigaObject && typeof gigaObject === 'object') {
-    addLog('Все свойства:');
-    for (let key in gigaObject) {
-      addLog('  - ' + key + ': ' + typeof gigaObject[key]);
-    }
-  }
+  document.body.appendChild(widgetDiv);
+  addLog('Виджет добавлен, ждем...');
 };
 
-// Кнопка открытия
-document.getElementById('openBtn').onclick = function() {
-  if (!gigaObject) {
-    addLog('❌ Сначала инициализируй SDK (кнопка 1)', 'error');
-    return;
-  }
+// Метод 3: Проверяем window.Giga
+document.getElementById('method3').onclick = function() {
+  addLog('Ищем Giga...');
   
-  addLog('Пытаюсь открыть задания...');
-  
-  // Пробуем разные варианты
-  if (typeof gigaObject.show === 'function') {
-    addLog('Использую show()');
-    gigaObject.show({
-      onReward: (reward) => addLog('Награда!', 'success'),
-      onClose: () => addLog('Закрыто'),
-      onError: (e) => addLog('Ошибка: ' + e)
-    });
-  } 
-  else if (typeof gigaObject.open === 'function') {
-    addLog('Использую open()');
-    gigaObject.open();
-  }
-  else if (typeof gigaObject.showWall === 'function') {
-    addLog('Использую showWall()');
-    gigaObject.showWall();
-  }
-  else if (typeof gigaObject.start === 'function') {
-    addLog('Использую start()');
-    gigaObject.start();
-  }
-  else {
-    addLog('❌ Не найден подходящий метод', 'error');
-    addLog('Пробуем вызвать сам объект как функцию...');
-    if (typeof gigaObject === 'function') {
-      try {
-        const result = gigaObject();
-        addLog('Результат вызова: ' + typeof result);
-      } catch(e) {
-        addLog('Ошибка: ' + e.message);
+  // Смотрим все глобальные объекты
+  for (let key in window) {
+    if (key.toLowerCase().includes('giga')) {
+      addLog('Найден: window.' + key + ' = ' + typeof window[key]);
+      if (typeof window[key] === 'function') {
+        try {
+          const result = window[key]();
+          addLog('Результат вызова: ' + typeof result);
+        } catch(e) {}
       }
     }
+  }
+  
+  // Пробуем loadGigaSDKCallbacks
+  if (window.loadGigaSDKCallbacks) {
+    addLog('loadGigaSDKCallbacks найден');
+    addLog('Содержимое: ' + JSON.stringify(window.loadGigaSDKCallbacks));
   }
 };
 </script>

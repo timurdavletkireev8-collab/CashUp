@@ -95,6 +95,7 @@ export default {
   <title>CashUp</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
+  <script src="https://wall.giga.pub/api/v1/loader.js?projectId=6822"></script>
   <style>
     :root {
       --glass: rgba(255,255,255,0.07);
@@ -906,6 +907,7 @@ const startParam = tg.initDataUnsafe?.start_param || null;
 const refUrl = 'https://t.me/' + botUsername + '/app?startapp=' + userId;
 
 let currentBalance = 0;
+let gigaReady = false;
 
 async function syncData() {
   try {
@@ -955,14 +957,17 @@ document.getElementById('btnWatch').onclick = async () => {
   } catch(e) { tg.HapticFeedback.notificationOccurred('error'); }
 };
 
-(function initOfferWall() {
-  if (!window.loadOfferWallSDK) {
-    const script = document.createElement('script');
-    script.src = 'https://wall.giga.pub/api/v1/loader.js?projectId=6822';
-    script.async = true;
-    document.head.appendChild(script);
-  }
-})();
+// Ждем загрузки giga SDK
+window.addEventListener('load', function() {
+  setTimeout(function() {
+    if (window.giga) {
+      gigaReady = true;
+      console.log('Giga SDK loaded');
+    } else {
+      console.log('Giga SDK not loaded');
+    }
+  }, 1000);
+});
 
 async function doTaskReward() {
   try {
@@ -983,14 +988,8 @@ async function doTaskReward() {
 async function openOfferwall() {
   tg.HapticFeedback.impactOccurred('medium');
   
-  let attempts = 0;
-  while (!window.giga && attempts < 30) {
-    await new Promise(resolve => setTimeout(resolve, 100));
-    attempts++;
-  }
-  
   if (!window.giga) {
-    tg.showAlert('Loading tasks... Please wait a moment and try again.');
+    tg.showAlert('Загрузка заданий... Попробуйте еще раз через пару секунд');
     return;
   }
   
@@ -999,21 +998,21 @@ async function openOfferwall() {
       onReward: async (reward) => {
         tg.HapticFeedback.notificationOccurred('success');
         await doTaskReward();
-        tg.showAlert('You received ' + (reward?.amount || 5) + ' TON for completing the task!');
+        tg.showAlert('Вы получили ' + (reward?.amount || 5) + ' TON за выполнение задания!');
       },
-      onClose: () => {
+      onClose: function() {
         console.log('Offerwall closed');
       },
-      onError: (error) => {
+      onError: function(error) {
         console.error('Offerwall error:', error);
         tg.HapticFeedback.notificationOccurred('error');
-        tg.showAlert('Error loading tasks. Please try again later.');
+        tg.showAlert('Ошибка загрузки заданий. Попробуйте позже.');
       }
     });
   } catch(e) {
     console.error(e);
     tg.HapticFeedback.notificationOccurred('error');
-    tg.showAlert('Error opening tasks. Please try again later.');
+    tg.showAlert('Ошибка открытия заданий. Попробуйте позже.');
   }
 }
 
@@ -1038,16 +1037,16 @@ window.doWithdraw = async () => {
   const amount = parseFloat(document.getElementById('amountInput').value);
 
   if (!wallet || wallet.length < 10) {
-    tg.showAlert('Enter a valid TON wallet address.');
+    tg.showAlert('Введите корректный адрес TON-кошелька.');
     return;
   }
   if (!amount || amount < 0.5) {
-    tg.showAlert('Minimum withdrawal amount is 0.5 TON.');
+    tg.showAlert('Минимальная сумма вывода — 0.5 TON.');
     return;
   }
   const balTon = currentBalance / 10000;
   if (amount > balTon) {
-    tg.showAlert('Insufficient funds in balance.');
+    tg.showAlert('Недостаточно средств на балансе.');
     return;
   }
 
@@ -1060,18 +1059,18 @@ window.doWithdraw = async () => {
     const d = await r.json();
     if (d.success) {
       tg.HapticFeedback.notificationOccurred('success');
-      tg.showAlert('Withdrawal request for ' + amount + ' TON has been sent. Processing within 24 hours.');
+      tg.showAlert('Заявка на вывод ' + amount + ' TON отправлена. Обработка в течение 24 часов.');
       document.getElementById('walletInput').value = '';
       document.getElementById('amountInput').value = '';
       closeModal('modalWithdraw');
       syncData();
     } else {
       tg.HapticFeedback.notificationOccurred('error');
-      tg.showAlert(d.error || 'Withdrawal error. Please try again later.');
+      tg.showAlert(d.error || 'Ошибка при выводе. Попробуйте позже.');
     }
   } catch(e) {
     tg.HapticFeedback.notificationOccurred('error');
-    tg.showAlert('Connection error. Please try again later.');
+    tg.showAlert('Ошибка соединения. Попробуйте позже.');
   }
 };
 
@@ -1085,7 +1084,7 @@ window.goTab = (tabId, navId) => {
 
 window.shareRef = () => {
   tg.HapticFeedback.impactOccurred('light');
-  const text = 'Join CashUp - earn TON for completing tasks and watching ads!';
+  const text = 'Присоединяйся к CashUp - зарабатывай TON за задания и просмотр рекламы!';
   tg.openTelegramLink('https://t.me/share/url?url=' + encodeURIComponent(refUrl) + '&text=' + encodeURIComponent(text));
 };
 
@@ -1093,8 +1092,8 @@ window.copyRef = () => {
   navigator.clipboard.writeText(refUrl).catch(() => {});
   tg.HapticFeedback.notificationOccurred('success');
   const btn = document.querySelector('.copy-btn');
-  btn.textContent = 'Copied!';
-  setTimeout(() => btn.textContent = 'Copy', 2000);
+  btn.textContent = 'Скопировано!';
+  setTimeout(() => btn.textContent = 'Копировать', 2000);
 };
 
 window.openMyRefs = async () => {
@@ -1108,10 +1107,10 @@ window.openMyRefs = async () => {
     });
     const list = await r.json();
     if (!list.length) {
-      document.getElementById('bodyRefs').innerHTML = '<div style="text-align:center;padding:40px 20px;color:var(--text-dim);font-size:14px;line-height:1.7;">You have no referrals yet.<br>Share your link to start earning.</div>';
+      document.getElementById('bodyRefs').innerHTML = '<div style="text-align:center;padding:40px 20px;color:var(--text-dim);font-size:14px;line-height:1.7;">У вас пока нет рефералов.<br>Поделитесь ссылкой, чтобы начать зарабатывать.</div>';
       return;
     }
-    let h = '<div style="font-size:11.5px;color:var(--text-dim);margin-bottom:14px;padding:10px 12px;background:rgba(0,180,255,0.06);border-radius:10px;border-left:2px solid rgba(0,180,255,0.38);">Referral is counted after 15 ad views</div>';
+    let h = '<div style="font-size:11.5px;color:var(--text-dim);margin-bottom:14px;padding:10px 12px;background:rgba(0,180,255,0.06);border-radius:10px;border-left:2px solid rgba(0,180,255,0.38);">Реферал засчитывается после 15 просмотров рекламы</div>';
     list.forEach(u => {
       const prog = Math.min(u.totalAdsWatched || 0, 15);
       const done = prog >= 15;
@@ -1120,9 +1119,9 @@ window.openMyRefs = async () => {
         '<div class="ref-prog-wrap">' +
           '<div class="ref-prog-name">' + u.firstName + (u.username ? ' <span style="color:var(--text-dim);font-size:11px;">@'+u.username+'</span>' : '') + '</div>' +
           '<div class="ref-prog-bar"><div class="ref-prog-fill" style="width:' + (prog/15)*100 + '%;"></div></div>' +
-          '<div class="ref-prog-num">' + prog + '/15 views</div>' +
+          '<div class="ref-prog-num">' + prog + '/15 просмотров</div>' +
         '</div>' +
-        '<div>' + (done ? '<div class="badge-done">Counted</div>' : '<div class="badge-wait">In progress</div>') + '</div>' +
+        '<div>' + (done ? '<div class="badge-done">Засчитан</div>' : '<div class="badge-wait">В процессе</div>') + '</div>' +
       '</div>';
     });
     document.getElementById('bodyRefs').innerHTML = h;
@@ -1146,13 +1145,13 @@ window.loadRating = async (type) => {
     const medals = ['', '🥇', '🥈', '🥉'];
     let h = '';
     list.forEach((u, i) => {
-      const val = type === 'balance' ? u.balance.toLocaleString() + ' TON' : (u.referrals || 0) + ' ref.';
+      const val = type === 'balance' ? u.balance.toLocaleString() + ' TON' : (u.referrals || 0) + ' реф.';
       const pos = i < 3
         ? '<div class="r-pos" style="font-size:18px;">' + medals[i+1] + '</div>'
         : '<div class="r-pos" style="color:var(--text-dim);">#' + (i+1) + '</div>';
       h += '<div class="r-row">' + pos + '<div class="r-name">' + u.firstName + '</div><div class="r-val">' + val + '</div></div>';
     });
-    document.getElementById('ratingList').innerHTML = h || '<div style="text-align:center;padding:20px;color:var(--text-dim);">No data</div>';
+    document.getElementById('ratingList').innerHTML = h || '<div style="text-align:center;padding:20px;color:var(--text-dim);">Нет данных</div>';
   } catch(e) {}
 };
 

@@ -5,7 +5,7 @@ export default {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Giga Tasks</title>
+  <title>CashUp - Задания</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     body {
@@ -54,52 +54,87 @@ tg.ready();
 
 const statusDiv = document.getElementById('status');
 const btn = document.getElementById('taskBtn');
+const userId = tg.initDataUnsafe?.user?.id || 'test_user';
 
-let offerwallInstance = null;
+let gigaSDK = null;
 
-// Загружаем SDK
-const script = document.createElement('script');
-script.src = 'https://wall.giga.pub/api/v1/loader.js?projectId=6822';
-script.onload = function() {
-  statusDiv.innerHTML = 'SDK загружен, инициализация...';
+// Правильная инициализация SDK по документации
+window.loadGigaSDKCallbacks = window.loadGigaSDKCallbacks || [];
+
+window.loadGigaSDKCallbacks.push(() => {
+  statusDiv.innerHTML = 'Инициализация SDK...';
   
-  let attempts = 0;
-  const interval = setInterval(function() {
-    attempts++;
-    if (window.loadOfferWallSDK) {
-      clearInterval(interval);
-      try {
-        // Сохраняем instance
-        offerwallInstance = window.loadOfferWallSDK();
-        statusDiv.innerHTML = '✅ Готово! Нажми на кнопку';
-        statusDiv.style.color = '#00e5b4';
-        btn.disabled = false;
+  window.loadOfferWallSDK({ projectId: '6822' })
+    .then(sdk => {
+      gigaSDK = sdk;
+      statusDiv.innerHTML = '✅ Готово! Нажми на кнопку';
+      statusDiv.style.color = '#00e5b4';
+      btn.disabled = false;
+      
+      // Обработчик получения награды
+      sdk.on('rewardClaim', async (data) => {
+        console.log('Reward claim received:', data);
+        statusDiv.innerHTML = '✅ Задание выполнено! Начисление...';
         
-        // Логируем все методы объекта для отладки
-        console.log('Offerwall instance:', offerwallInstance);
-        if (offerwallInstance) {
-          const methods = Object.getOwnPropertyNames(offerwallInstance).concat(
-            Object.getOwnPropertyNames(Object.getPrototypeOf(offerwallInstance))
-          );
-          console.log('Доступные методы:', methods);
+        // Отправляем запрос на начисление награды
+        try {
+          const res = await fetch('/api/task-reward', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: userId })
+          });
+          const result = await res.json();
+          
+          if (result.success) {
+            statusDiv.innerHTML = '✅ +5 TON начислено!';
+            tg.HapticFeedback.notificationOccurred('success');
+            tg.showAlert('Вы получили 5 TON за выполнение задания!');
+            
+            // Подтверждаем награду в SDK
+            if (data.rewardId && data.hash) {
+              sdk.confirmReward(data.rewardId, data.hash);
+            }
+          }
+        } catch(e) {
+          console.error(e);
+          statusDiv.innerHTML = '❌ Ошибка начисления';
         }
-      } catch(e) {
-        statusDiv.innerHTML = '❌ Ошибка: ' + e.message;
-        statusDiv.style.color = '#ff5f7e';
-      }
-    } else if (attempts > 30) {
-      clearInterval(interval);
+      });
+      
+      sdk.on('close', () => {
+        statusDiv.innerHTML = '✅ Готово! Нажми на кнопку';
+      });
+      
+      sdk.on('error', (error) => {
+        console.error('SDK error:', error);
+        statusDiv.innerHTML = '❌ Ошибка: ' + JSON.stringify(error);
+      });
+    })
+    .catch(error => {
+      console.error('Error loading SDK:', error);
       statusDiv.innerHTML = '❌ Ошибка загрузки SDK';
       statusDiv.style.color = '#ff5f7e';
-    }
-  }, 200);
+    });
+});
+
+// Загружаем SDK скрипт
+const script = document.createElement('script');
+script.src = 'https://wall.giga.pub/api/v1/loader.js?projectId=6822';
+script.async = true;
+script.onload = () => {
+  statusDiv.innerHTML = 'SDK загружен, инициализация...';
+};
+script.onerror = () => {
+  statusDiv.innerHTML = '❌ Ошибка загрузки скрипта';
+  statusDiv.style.color = '#ff5f7e';
 };
 document.head.appendChild(script);
 
 btn.disabled = true;
 
+// Открываем задания
 btn.onclick = function() {
-  if (!offerwallInstance) {
+  if (!gigaSDK) {
     statusDiv.innerHTML = '⏳ Подожди, SDK еще грузится...';
     return;
   }
@@ -107,38 +142,18 @@ btn.onclick = function() {
   statusDiv.innerHTML = '🔄 Открываю задания...';
   
   try {
-    // Пробуем разные возможные названия методов
-    if (typeof offerwallInstance.launch === 'function') {
-      // Метод launch как в документации офферволлов [citation:1][citation:2]
-      offerwallInstance.launch();
-      statusDiv.innerHTML = '✅ Задания открыты';
-    } 
-    else if (typeof offerwallInstance.open === 'function') {
-      offerwallInstance.open();
-      statusDiv.innerHTML = '✅ Задания открыты';
-    }
-    else if (typeof offerwallInstance.start === 'function') {
-      offerwallInstance.start();
-      statusDiv.innerHTML = '✅ Задания открыты';
-    }
-    else if (typeof offerwallInstance.show === 'function') {
-      offerwallInstance.show();
-      statusDiv.innerHTML = '✅ Задания открыты';
-    }
-    else {
-      // Если нет методов, показываем что есть
-      const availableMethods = [];
-      for (let key in offerwallInstance) {
-        if (typeof offerwallInstance[key] === 'function') {
-          availableMethods.push(key);
-        }
-      }
-      statusDiv.innerHTML = '⚠️ Доступные методы: ' + (availableMethods.join(', ') || 'нет методов');
-      statusDiv.style.color = '#ff5f7e';
+    // Открываем офферволл
+    if (typeof gigaSDK.show === 'function') {
+      gigaSDK.show();
+    } else if (typeof gigaSDK.open === 'function') {
+      gigaSDK.open();
+    } else if (typeof gigaSDK.launch === 'function') {
+      gigaSDK.launch();
+    } else {
+      statusDiv.innerHTML = '⚠️ Метод show не найден';
     }
   } catch(e) {
     statusDiv.innerHTML = '❌ Ошибка: ' + e.message;
-    statusDiv.style.color = '#ff5f7e';
   }
 };
 </script>

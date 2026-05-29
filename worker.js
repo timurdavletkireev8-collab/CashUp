@@ -68,68 +68,72 @@ export default {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Lume</title>
+  <title>CashUp</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --glass: rgba(255,255,255,0.08);
-      --glass-border: rgba(255,255,255,0.15);
-      --glass-hover: rgba(255,255,255,0.13);
-      --glass-strong: rgba(255,255,255,0.12);
-      --blur: blur(24px) saturate(180%);
-      --blur-sm: blur(16px) saturate(160%);
+      --glass: rgba(255,255,255,0.07);
+      --glass-border: rgba(255,255,255,0.13);
+      --glass-hover: rgba(255,255,255,0.11);
+      --glass-strong: rgba(255,255,255,0.14);
+      --blur: blur(32px) saturate(200%) brightness(1.1);
+      --blur-sm: blur(20px) saturate(180%);
+      --blur-xs: blur(12px) saturate(160%);
       --text: #ffffff;
-      --text-dim: rgba(255,255,255,0.5);
-      --text-mid: rgba(255,255,255,0.75);
-      --accent: #5eb4ff;
-      --accent2: #a78bfa;
-      --gold: #fbbf24;
-      --success: #34d399;
-      --r: 20px;
+      --text-dim: rgba(255,255,255,0.45);
+      --text-mid: rgba(255,255,255,0.72);
+      --accent: #00b4ff;
+      --accent2: #7c5cfc;
+      --accent3: #00e5b4;
+      --gold: #f5c842;
+      --success: #00e5b4;
+      --danger: #ff5f7e;
+      --ton: #0098ea;
+      --r: 22px;
+      --r-sm: 14px;
     }
     * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-    
+
     html, body {
-      height: 100%; width: 100%;
+      height:100%; width:100%;
       font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', sans-serif;
-      background: #0a0a0f;
+      background: #060610;
       color: var(--text);
       overflow: hidden;
     }
 
-    /* === MESH BACKGROUND === */
+    /* BG */
     .bg-mesh {
-      position: fixed; inset: 0; z-index: 0;
+      position:fixed; inset:0; z-index:0;
       background:
-        radial-gradient(ellipse 80% 60% at 20% 10%, rgba(94,180,255,0.18) 0%, transparent 60%),
-        radial-gradient(ellipse 60% 50% at 80% 20%, rgba(167,139,250,0.15) 0%, transparent 55%),
-        radial-gradient(ellipse 70% 40% at 50% 80%, rgba(94,180,255,0.1) 0%, transparent 50%),
-        radial-gradient(ellipse 50% 60% at 10% 70%, rgba(167,139,250,0.08) 0%, transparent 50%),
-        #0a0a0f;
-      animation: meshShift 12s ease-in-out infinite alternate;
+        radial-gradient(ellipse 90% 55% at 15% 5%, rgba(0,180,255,0.13) 0%, transparent 55%),
+        radial-gradient(ellipse 60% 50% at 85% 15%, rgba(124,92,252,0.12) 0%, transparent 50%),
+        radial-gradient(ellipse 55% 45% at 55% 85%, rgba(0,229,180,0.08) 0%, transparent 50%),
+        radial-gradient(ellipse 40% 55% at 8% 75%, rgba(0,152,234,0.07) 0%, transparent 45%),
+        #060610;
+      animation: bgDrift 16s ease-in-out infinite alternate;
     }
-    @keyframes meshShift {
+    @keyframes bgDrift {
       0%   { filter: hue-rotate(0deg) brightness(1); }
-      100% { filter: hue-rotate(15deg) brightness(1.05); }
+      100% { filter: hue-rotate(20deg) brightness(1.06); }
     }
-    .bg-noise {
-      position: fixed; inset: 0; z-index: 1; pointer-events: none;
-      opacity: 0.025;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
-      background-size: 200px 200px;
+    .bg-grid {
+      position:fixed; inset:0; z-index:1; pointer-events:none; opacity:0.018;
+      background-image: linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px);
+      background-size: 40px 40px;
     }
 
-    /* === LAYOUT === */
-    .app { position: relative; z-index: 2; height: 100vh; display: flex; flex-direction: column; }
-    .scroll-area { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 16px 16px 110px; scrollbar-width: none; }
-    .scroll-area::-webkit-scrollbar { display: none; }
-    .tab { display: none; animation: tabIn 0.35s cubic-bezier(0.34,1.56,0.64,1) forwards; }
-    .tab.active { display: block; }
-    @keyframes tabIn { from { opacity:0; transform:translateY(12px) scale(0.98); } to { opacity:1; transform:translateY(0) scale(1); } }
+    /* LAYOUT */
+    .app { position:relative; z-index:2; height:100vh; display:flex; flex-direction:column; }
+    .scroll-area { flex:1; overflow-y:auto; overflow-x:hidden; padding:14px 14px 108px; scrollbar-width:none; }
+    .scroll-area::-webkit-scrollbar { display:none; }
+    .tab { display:none; animation: tabIn 0.38s cubic-bezier(0.34,1.5,0.64,1) forwards; }
+    .tab.active { display:block; }
+    @keyframes tabIn { from { opacity:0; transform:translateY(14px) scale(0.97); } to { opacity:1; transform:translateY(0) scale(1); } }
 
-    /* === GLASS CARD === */
+    /* GLASS */
     .glass {
       background: var(--glass);
       backdrop-filter: var(--blur);
@@ -140,300 +144,543 @@ export default {
       overflow: hidden;
     }
     .glass::before {
-      content:'';
-      position:absolute; top:0; left:0; right:0; height:1px;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+      content:''; position:absolute; top:0; left:0; right:0; height:1px;
+      background: linear-gradient(90deg, transparent 5%, rgba(255,255,255,0.28) 50%, transparent 95%);
+      pointer-events:none;
     }
-    .card { padding: 20px; margin-bottom: 14px; }
+    .glass::after {
+      content:''; position:absolute; inset:0; pointer-events:none;
+      background: linear-gradient(160deg, rgba(255,255,255,0.05) 0%, transparent 60%);
+      border-radius: inherit;
+    }
+    .card { padding:20px; margin-bottom:13px; }
 
-    /* === HEADER STRIP === */
+    /* HEADER */
     .header-strip {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 14px 16px 0;
-      position: relative; z-index: 2;
+      display:flex; align-items:center; justify-content:space-between;
+      padding:14px 16px 2px;
+      position:relative; z-index:2;
     }
-    .header-user { display: flex; align-items: center; gap: 12px; }
-    .avatar {
-      width: 42px; height: 42px; border-radius: 12px;
-      background: linear-gradient(135deg, rgba(94,180,255,0.3), rgba(167,139,250,0.3));
-      border: 1px solid var(--glass-border);
-      display: flex; align-items: center; justify-content: center;
-      font-weight: 700; font-size: 17px; color: var(--text);
-      backdrop-filter: var(--blur-sm);
+    .header-logo {
+      display:flex; align-items:center; gap:10px;
     }
-    .header-name { font-size: 15px; font-weight: 700; color: var(--text); }
-    .header-id { font-size: 11px; color: var(--text-dim); margin-top: 1px; }
-    .header-bal {
-      text-align: right;
+    .logo-mark {
+      width:38px; height:38px; border-radius:12px;
+      background: linear-gradient(135deg, rgba(0,180,255,0.35), rgba(124,92,252,0.35));
+      border: 1px solid rgba(0,180,255,0.3);
+      backdrop-filter: var(--blur-xs);
+      display:flex; align-items:center; justify-content:center;
+      box-shadow: 0 0 16px rgba(0,180,255,0.2);
     }
-    .header-bal-val { font-size: 18px; font-weight: 800; letter-spacing: -0.5px; color: var(--text); }
-    .header-bal-label { font-size: 10px; color: var(--text-dim); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
-
-    /* === BALANCE CARD === */
-    .bal-card { padding: 28px 24px; text-align: center; margin-bottom: 14px; }
-    .bal-label { font-size: 11px; color: var(--text-dim); font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 8px; }
-    .bal-num {
-      font-size: 58px; font-weight: 800; letter-spacing: -3px; color: var(--text);
-      background: linear-gradient(135deg, #fff 30%, rgba(94,180,255,0.9));
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-    }
-    .bal-currency { font-size: 14px; font-weight: 700; color: var(--accent); letter-spacing: 3px; margin-top: 4px; opacity: 0.85; }
-    .progress-wrap { margin-top: 22px; }
-    .progress-labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-dim); font-weight: 600; margin-bottom: 8px; }
-    .progress-track { height: 5px; background: rgba(255,255,255,0.1); border-radius: 99px; overflow: hidden; }
-    .progress-fill {
-      height: 100%; width: 0%; border-radius: 99px;
+    .logo-text { font-size:19px; font-weight:900; letter-spacing:-0.5px;
       background: linear-gradient(90deg, var(--accent), var(--accent2));
-      transition: width 1s cubic-bezier(0.4,0,0.2,1);
-      box-shadow: 0 0 12px rgba(94,180,255,0.6);
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
     }
-    .views-line { font-size: 11px; color: var(--text-dim); text-align: right; margin-top: 6px; }
+    .header-user { display:flex; align-items:center; gap:9px; }
+    .avatar {
+      width:36px; height:36px; border-radius:10px;
+      background: linear-gradient(135deg, rgba(0,180,255,0.25), rgba(124,92,252,0.25));
+      border: 1px solid rgba(255,255,255,0.15);
+      display:flex; align-items:center; justify-content:center;
+      font-weight:800; font-size:14px; color:var(--text);
+    }
+    .header-info { text-align:right; }
+    .header-name { font-size:13px; font-weight:700; color:var(--text); line-height:1.2; }
+    .header-bal-row { display:flex; align-items:center; gap:5px; justify-content:flex-end; margin-top:1px; }
+    .header-bal-val { font-size:13px; font-weight:800; color:var(--accent); }
+    .ton-badge-sm {
+      background: rgba(0,152,234,0.2); border:1px solid rgba(0,152,234,0.35);
+      border-radius:5px; padding:1px 5px; font-size:9px; font-weight:800; color:var(--ton); letter-spacing:0.5px;
+    }
 
-    /* === BUTTONS === */
-    .btn-main {
-      width: 100%; padding: 18px; border-radius: 16px; border: none; cursor: pointer;
-      font-size: 15px; font-weight: 700; color: #fff; letter-spacing: 0.2px;
-      background: linear-gradient(135deg, rgba(94,180,255,0.35), rgba(167,139,250,0.35));
+    /* BALANCE CARD */
+    .bal-card { padding:26px 22px; text-align:center; margin-bottom:13px; }
+    .bal-tag {
+      display:inline-flex; align-items:center; gap:6px;
+      background: rgba(0,152,234,0.15); border:1px solid rgba(0,152,234,0.3);
+      border-radius:20px; padding:5px 14px; font-size:11px; font-weight:800;
+      color:var(--ton); letter-spacing:0.8px; text-transform:uppercase; margin-bottom:14px;
+    }
+    .bal-num {
+      font-size:54px; font-weight:900; letter-spacing:-3px;
+      background: linear-gradient(135deg, #fff 20%, rgba(0,180,255,0.85) 80%);
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+      line-height:1;
+    }
+    .bal-ton { font-size:13px; font-weight:800; color:var(--ton); letter-spacing:3px; margin-top:6px; opacity:0.9; }
+    .bal-usd { font-size:12px; color:var(--text-dim); margin-top:4px; }
+    .progress-wrap { margin-top:20px; }
+    .progress-labels { display:flex; justify-content:space-between; font-size:11px; color:var(--text-dim); font-weight:600; margin-bottom:8px; }
+    .progress-track { height:4px; background:rgba(255,255,255,0.08); border-radius:99px; overflow:hidden; }
+    .progress-fill {
+      height:100%; width:0%; border-radius:99px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      transition: width 1.2s cubic-bezier(0.4,0,0.2,1);
+      box-shadow: 0 0 10px rgba(0,180,255,0.7);
+    }
+    .views-line { font-size:11px; color:var(--text-dim); text-align:right; margin-top:5px; }
+
+    /* SECTION TITLE */
+    .sec-head { margin-bottom:16px; }
+    .sec-title { font-size:22px; font-weight:900; color:var(--text); letter-spacing:-0.6px; margin-bottom:4px; }
+    .sec-sub { font-size:13px; color:var(--text-dim); line-height:1.6; }
+
+    /* BUTTONS */
+    .btn-primary {
+      width:100%; padding:17px 20px; border-radius:16px; border:none; cursor:pointer;
+      font-size:15px; font-weight:800; color:#fff; letter-spacing:0.1px;
+      background: linear-gradient(135deg, rgba(0,180,255,0.4), rgba(124,92,252,0.4));
       backdrop-filter: var(--blur-sm); -webkit-backdrop-filter: var(--blur-sm);
-      border: 1px solid rgba(94,180,255,0.35);
-      display: flex; align-items: center; justify-content: center; gap: 10px;
-      transition: all 0.2s; position: relative; overflow: hidden;
+      border: 1px solid rgba(0,180,255,0.4);
+      display:flex; align-items:center; justify-content:center; gap:10px;
+      transition: all 0.22s; position:relative; overflow:hidden;
+      box-shadow: 0 4px 24px rgba(0,180,255,0.15), inset 0 1px 0 rgba(255,255,255,0.15);
     }
-    .btn-main::after {
-      content:''; position:absolute; inset:0;
-      background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
-      opacity: 0; transition: opacity 0.2s;
+    .btn-primary::before {
+      content:''; position:absolute; top:0; left:-100%; width:100%; height:100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
+      transition: left 0.5s;
     }
-    .btn-main:active { transform: scale(0.97); opacity: 0.85; }
-    .btn-main:active::after { opacity: 1; }
+    .btn-primary:active { transform:scale(0.97); opacity:0.85; }
+    .btn-primary:active::before { left:100%; }
+
     .btn-ghost {
-      width: 100%; padding: 16px; border-radius: 14px; border: 1px solid var(--glass-border);
+      width:100%; padding:15px 20px; border-radius:14px;
+      border:1px solid var(--glass-border);
       background: var(--glass); backdrop-filter: var(--blur-sm); -webkit-backdrop-filter: var(--blur-sm);
-      color: var(--text-mid); font-size: 14px; font-weight: 600; cursor: pointer;
-      display: flex; align-items: center; justify-content: center; gap: 10px;
-      transition: all 0.2s; margin-top: 10px;
+      color:var(--text-mid); font-size:14px; font-weight:700; cursor:pointer;
+      display:flex; align-items:center; justify-content:center; gap:9px;
+      transition: all 0.2s; margin-top:10px;
     }
-    .btn-ghost:active { background: var(--glass-hover); transform: scale(0.98); }
+    .btn-ghost:active { background: var(--glass-hover); transform:scale(0.98); }
 
-    /* === SECTION HEADING === */
-    .sec-title { font-size: 22px; font-weight: 800; color: var(--text); margin-bottom: 6px; letter-spacing: -0.5px; }
-    .sec-sub { font-size: 13px; color: var(--text-dim); line-height: 1.6; margin-bottom: 20px; }
-
-    /* === REFERRAL BLOCK === */
-    .ref-divider { height: 1px; background: var(--glass-border); margin: 28px 0 24px; }
-    .ref-highlight {
-      padding: 18px 20px; border-radius: 16px; margin-bottom: 14px;
-      background: linear-gradient(135deg, rgba(94,180,255,0.1), rgba(167,139,250,0.1));
-      border: 1px solid rgba(94,180,255,0.2);
+    .btn-ton {
+      width:100%; padding:17px 20px; border-radius:16px; border:none; cursor:pointer;
+      font-size:15px; font-weight:800; color:#fff;
+      background: linear-gradient(135deg, rgba(0,152,234,0.45), rgba(0,180,255,0.3));
       backdrop-filter: var(--blur-sm); -webkit-backdrop-filter: var(--blur-sm);
+      border: 1px solid rgba(0,152,234,0.45);
+      display:flex; align-items:center; justify-content:center; gap:10px;
+      transition: all 0.22s;
+      box-shadow: 0 4px 24px rgba(0,152,234,0.2), inset 0 1px 0 rgba(255,255,255,0.12);
     }
-    .ref-highlight-title { font-size: 16px; font-weight: 800; margin-bottom: 8px; color: var(--text); }
-    .ref-highlight-desc { font-size: 13px; color: var(--text-mid); line-height: 1.65; }
-    .ref-highlight-desc b { color: var(--accent); }
-    .ref-link-row {
-      display: flex; align-items: center; gap: 10px;
-      background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border);
-      border-radius: 13px; padding: 13px 16px; margin-bottom: 12px;
+    .btn-ton:active { transform:scale(0.97); opacity:0.85; }
+
+    /* TASK TABS TOGGLE */
+    .task-toggle {
+      display:flex; gap:8px; margin-bottom:18px;
+      background: rgba(255,255,255,0.04);
+      border:1px solid var(--glass-border);
+      border-radius:14px; padding:4px;
+      backdrop-filter: var(--blur-xs);
     }
-    .ref-link-text { flex: 1; font-size: 12px; color: var(--text-dim); font-family: 'SF Mono', monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .copy-btn {
-      background: rgba(94,180,255,0.2); border: 1px solid rgba(94,180,255,0.3);
-      border-radius: 8px; padding: 7px 12px; color: var(--accent); font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; transition: all 0.2s;
+    .task-toggle-btn {
+      flex:1; padding:10px; border-radius:11px;
+      font-size:13px; font-weight:800; color:var(--text-dim);
+      background:transparent; border:none; cursor:pointer;
+      transition: all 0.25s; letter-spacing:-0.2px;
     }
-    .copy-btn:active { opacity: 0.7; }
-    .ref-count-badge {
-      display: inline-flex; align-items: center;
-      background: rgba(94,180,255,0.15); border: 1px solid rgba(94,180,255,0.25);
-      border-radius: 8px; padding: 3px 10px; font-size: 12px; font-weight: 700; color: var(--accent); margin-left: 8px;
+    .task-toggle-btn.active {
+      background: rgba(124,92,252,0.25);
+      border:1px solid rgba(124,92,252,0.35);
+      color:var(--text);
+      box-shadow: 0 2px 12px rgba(124,92,252,0.15);
     }
 
-    /* === TASKS === */
+    /* TASK PANES */
+    .task-pane { display:none; }
+    .task-pane.active { display:block; animation: tabIn 0.3s cubic-bezier(0.34,1.5,0.64,1) forwards; }
+
+    /* TASK CARD */
     .task-card {
-      padding: 22px 20px; margin-bottom: 14px;
-      background: linear-gradient(135deg, rgba(167,139,250,0.1), rgba(94,180,255,0.08));
-      border: 1px solid rgba(167,139,250,0.2);
-      border-radius: 18px;
-      backdrop-filter: var(--blur-sm); -webkit-backdrop-filter: var(--blur-sm);
+      padding:26px 22px; margin-bottom:13px;
+      text-align:center;
     }
-    .task-reward-badge {
-      display: inline-flex; align-items: center; gap: 6px;
-      background: rgba(52,211,153,0.15); border: 1px solid rgba(52,211,153,0.25);
-      border-radius: 20px; padding: 5px 12px; font-size: 12px; font-weight: 800; color: var(--success);
-      margin-bottom: 14px;
+    .task-difficulty-badge {
+      display:inline-flex; align-items:center; gap:6px;
+      border-radius:20px; padding:5px 14px;
+      font-size:11px; font-weight:800; letter-spacing:0.8px; text-transform:uppercase; margin-bottom:16px;
     }
-    .task-title { font-size: 17px; font-weight: 800; margin-bottom: 8px; }
-    .task-desc { font-size: 13px; color: var(--text-mid); line-height: 1.65; margin-bottom: 18px; }
+    .badge-hard {
+      background: rgba(255,95,126,0.15); border:1px solid rgba(255,95,126,0.3); color:var(--danger);
+    }
+    .badge-easy {
+      background: rgba(0,229,180,0.15); border:1px solid rgba(0,229,180,0.3); color:var(--success);
+    }
+    .task-icon {
+      width:60px; height:60px; border-radius:18px; margin:0 auto 16px;
+      display:flex; align-items:center; justify-content:center;
+      font-size:26px;
+    }
+    .task-icon-hard {
+      background: linear-gradient(135deg, rgba(255,95,126,0.2), rgba(124,92,252,0.2));
+      border:1px solid rgba(255,95,126,0.25);
+    }
+    .task-icon-easy {
+      background: linear-gradient(135deg, rgba(0,229,180,0.2), rgba(0,180,255,0.2));
+      border:1px solid rgba(0,229,180,0.25);
+    }
+    .task-card-title { font-size:19px; font-weight:900; margin-bottom:8px; letter-spacing:-0.3px; }
+    .task-card-desc { font-size:13px; color:var(--text-mid); line-height:1.7; margin-bottom:22px; }
+    .task-reward-row {
+      display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:20px;
+    }
+    .task-reward-item {
+      display:flex; align-items:center; gap:6px;
+      background: rgba(0,229,180,0.1); border:1px solid rgba(0,229,180,0.2);
+      border-radius:10px; padding:7px 14px;
+    }
+    .task-reward-val { font-size:14px; font-weight:900; color:var(--success); }
+    .task-reward-label { font-size:11px; color:var(--text-dim); font-weight:600; }
     .task-note {
-      font-size: 11.5px; color: var(--text-dim); line-height: 1.6; margin-top: 14px;
-      padding: 12px 14px; background: rgba(255,255,255,0.04); border-radius: 10px;
-      border-left: 2px solid rgba(94,180,255,0.4);
+      font-size:12px; color:var(--text-dim); line-height:1.65; margin-top:16px;
+      padding:12px 14px; background:rgba(255,255,255,0.04); border-radius:12px;
+      border-left:2px solid rgba(0,180,255,0.35); text-align:left;
     }
 
-    /* === PROFILE === */
+    /* ADS TAB */
+    .ads-hero {
+      padding:28px 22px; text-align:center; margin-bottom:13px;
+    }
+    .ads-icon {
+      width:70px; height:70px; border-radius:22px; margin:0 auto 18px;
+      background: linear-gradient(135deg, rgba(0,180,255,0.25), rgba(0,152,234,0.2));
+      border:1px solid rgba(0,180,255,0.3);
+      display:flex; align-items:center; justify-content:center; font-size:30px;
+      box-shadow: 0 8px 32px rgba(0,180,255,0.15);
+    }
+    .ads-title { font-size:20px; font-weight:900; margin-bottom:8px; letter-spacing:-0.3px; }
+    .ads-desc { font-size:13px; color:var(--text-mid); line-height:1.7; margin-bottom:22px; }
+    .ads-earn-row {
+      display:flex; align-items:center; justify-content:center; gap:6px; margin-bottom:22px;
+    }
+    .ads-earn-chip {
+      display:flex; align-items:center; gap:6px;
+      background: rgba(0,152,234,0.15); border:1px solid rgba(0,152,234,0.3);
+      border-radius:12px; padding:9px 18px;
+    }
+    .ads-earn-val { font-size:17px; font-weight:900; color:var(--ton); }
+    .ads-earn-sub { font-size:11px; color:var(--text-dim); }
+
+    /* REFERRAL TAB */
+    .ref-hero { padding:22px; margin-bottom:13px; text-align:center; }
+    .ref-hero-icon {
+      width:58px; height:58px; border-radius:18px; margin:0 auto 14px;
+      background: linear-gradient(135deg, rgba(0,229,180,0.2), rgba(0,180,255,0.15));
+      border:1px solid rgba(0,229,180,0.25);
+      display:flex; align-items:center; justify-content:center; font-size:24px;
+    }
+    .ref-hero-title { font-size:19px; font-weight:900; margin-bottom:8px; letter-spacing:-0.3px; }
+    .ref-hero-desc { font-size:13px; color:var(--text-mid); line-height:1.7; }
+    .ref-hero-desc b { color:var(--accent3); }
+
+    .ref-stats-row {
+      display:flex; gap:10px; margin-bottom:13px;
+    }
+    .ref-stat-card {
+      flex:1; padding:16px; text-align:center;
+    }
+    .ref-stat-val { font-size:24px; font-weight:900; color:var(--text); letter-spacing:-1px; }
+    .ref-stat-label { font-size:11px; color:var(--text-dim); font-weight:600; margin-top:3px; text-transform:uppercase; letter-spacing:0.5px; }
+
+    .ref-link-wrap { margin-bottom:13px; }
+    .ref-link-label { font-size:11px; font-weight:700; color:var(--text-dim); text-transform:uppercase; letter-spacing:1px; margin-bottom:8px; }
+    .ref-link-box {
+      display:flex; align-items:center; gap:10px;
+      background: rgba(255,255,255,0.04); border:1px solid var(--glass-border);
+      border-radius:14px; padding:13px 16px;
+      backdrop-filter: var(--blur-xs);
+    }
+    .ref-link-text { flex:1; font-size:12px; color:var(--text-dim); font-family:'SF Mono',monospace; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .copy-btn {
+      background: rgba(0,180,255,0.2); border:1px solid rgba(0,180,255,0.35);
+      border-radius:9px; padding:7px 14px; color:var(--accent);
+      font-size:12px; font-weight:800; cursor:pointer; white-space:nowrap; transition:all 0.2s;
+    }
+    .copy-btn:active { opacity:0.7; transform:scale(0.96); }
+    .ref-count-badge {
+      display:inline-flex; align-items:center;
+      background: rgba(0,180,255,0.15); border:1px solid rgba(0,180,255,0.25);
+      border-radius:8px; padding:3px 9px; font-size:12px; font-weight:800; color:var(--accent); margin-left:8px;
+    }
+    .ref-note {
+      padding:14px 16px; border-radius:14px; margin-bottom:13px;
+      background: linear-gradient(135deg, rgba(0,229,180,0.08), rgba(0,180,255,0.06));
+      border:1px solid rgba(0,229,180,0.18);
+      font-size:12.5px; color:var(--text-mid); line-height:1.7;
+    }
+    .ref-note b { color:var(--accent3); }
+
+    /* PROFILE */
     .prof-hero {
-      display: flex; align-items: center; gap: 16px; padding: 22px 20px; margin-bottom: 14px;
+      display:flex; align-items:center; gap:16px; padding:22px; margin-bottom:13px;
     }
     .prof-avatar {
-      width: 64px; height: 64px; border-radius: 18px; flex-shrink: 0;
-      background: linear-gradient(135deg, rgba(94,180,255,0.35), rgba(167,139,250,0.35));
-      border: 1px solid rgba(255,255,255,0.2);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 26px; font-weight: 800; color: var(--text);
+      width:64px; height:64px; border-radius:18px; flex-shrink:0;
+      background: linear-gradient(135deg, rgba(0,180,255,0.3), rgba(124,92,252,0.3));
+      border:1px solid rgba(255,255,255,0.18);
+      display:flex; align-items:center; justify-content:center;
+      font-size:26px; font-weight:900; color:var(--text);
+      box-shadow: 0 0 24px rgba(0,180,255,0.15);
     }
-    .prof-name { font-size: 20px; font-weight: 800; margin-bottom: 4px; }
-    .prof-id { font-size: 12px; color: var(--text-dim); }
-    .stat-row { display: flex; align-items: center; padding: 15px 0; border-bottom: 1px solid rgba(255,255,255,0.07); }
-    .stat-row:last-child { border-bottom: none; padding-bottom: 0; }
-    .stat-label { flex: 1; font-size: 14px; color: var(--text-dim); }
-    .stat-val { font-size: 15px; font-weight: 800; color: var(--text); }
+    .prof-name { font-size:20px; font-weight:900; margin-bottom:4px; letter-spacing:-0.5px; }
+    .prof-id { font-size:12px; color:var(--text-dim); }
+    .stat-row { display:flex; align-items:center; padding:15px 0; border-bottom:1px solid rgba(255,255,255,0.07); }
+    .stat-row:last-child { border-bottom:none; padding-bottom:0; }
+    .stat-label { flex:1; font-size:14px; color:var(--text-dim); }
+    .stat-val { font-size:15px; font-weight:800; color:var(--text); }
     .trophy-row {
-      display: flex; align-items: center; gap: 14px; padding: 18px 20px; cursor: pointer; transition: all 0.2s;
+      display:flex; align-items:center; gap:14px; padding:18px 20px; cursor:pointer; transition:all 0.2s;
     }
-    .trophy-row:active { opacity: 0.8; }
+    .trophy-row:active { opacity:0.8; }
     .trophy-icon-wrap {
-      width: 44px; height: 44px; border-radius: 13px; flex-shrink: 0;
-      background: linear-gradient(135deg, rgba(251,191,36,0.25), rgba(251,191,36,0.1));
-      border: 1px solid rgba(251,191,36,0.3);
-      display: flex; align-items: center; justify-content: center;
+      width:44px; height:44px; border-radius:13px; flex-shrink:0;
+      background: linear-gradient(135deg, rgba(245,200,66,0.25), rgba(245,200,66,0.1));
+      border:1px solid rgba(245,200,66,0.3);
+      display:flex; align-items:center; justify-content:center;
     }
-    .trophy-texts .t1 { font-size: 15px; font-weight: 700; }
-    .trophy-texts .t2 { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+    .trophy-texts .t1 { font-size:15px; font-weight:700; }
+    .trophy-texts .t2 { font-size:12px; color:var(--text-dim); margin-top:2px; }
 
-    /* === INFO === */
-    .info-card { padding: 22px; margin-bottom: 14px; }
-    .info-title { font-size: 16px; font-weight: 800; margin-bottom: 10px; }
-    .info-text { font-size: 13px; color: var(--text-dim); line-height: 1.7; }
+    /* INFO */
+    .info-card { padding:22px; margin-bottom:13px; }
+    .info-title { font-size:16px; font-weight:800; margin-bottom:10px; }
+    .info-text { font-size:13px; color:var(--text-dim); line-height:1.75; }
 
-    /* === MODAL === */
+    /* TON HIGHLIGHT */
+    .ton-highlight {
+      display:inline-flex; align-items:center; gap:5px;
+      background: rgba(0,152,234,0.15); border:1px solid rgba(0,152,234,0.3);
+      border-radius:8px; padding:3px 9px;
+      font-size:12px; font-weight:800; color:var(--ton);
+    }
+
+    /* MODAL */
     .modal-bg {
-      position: fixed; inset: 0; z-index: 300;
-      background: rgba(0,0,0,0.65);
-      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-      display: none; align-items: flex-end;
+      position:fixed; inset:0; z-index:300;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      display:none; align-items:flex-end;
     }
-    .modal-bg.open { display: flex; }
+    .modal-bg.open { display:flex; }
     .modal-sheet {
-      width: 100%; max-height: 82vh;
-      background: rgba(16,16,24,0.92);
+      width:100%; max-height:82vh;
+      background: rgba(12,12,22,0.94);
       backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
-      border: 1px solid var(--glass-border);
-      border-radius: 24px 24px 0 0;
-      display: flex; flex-direction: column;
-      animation: sheetUp 0.3s cubic-bezier(0.34,1.4,0.64,1);
+      border:1px solid rgba(255,255,255,0.12);
+      border-radius:26px 26px 0 0;
+      display:flex; flex-direction:column;
+      animation: sheetUp 0.32s cubic-bezier(0.34,1.4,0.64,1);
     }
-    @keyframes sheetUp { from { transform: translateY(40px); opacity:0; } to { transform: translateY(0); opacity:1; } }
-    .modal-handle { width: 36px; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.2); margin: 12px auto 0; }
+    @keyframes sheetUp { from { transform:translateY(50px); opacity:0; } to { transform:translateY(0); opacity:1; } }
+    .modal-handle { width:38px; height:4px; border-radius:2px; background:rgba(255,255,255,0.18); margin:13px auto 0; }
     .modal-head {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 16px 20px 14px; border-bottom: 1px solid var(--glass-border);
+      display:flex; align-items:center; justify-content:space-between;
+      padding:16px 20px 14px; border-bottom:1px solid rgba(255,255,255,0.08);
     }
-    .modal-head h3 { font-size: 17px; font-weight: 800; }
+    .modal-head h3 { font-size:17px; font-weight:900; }
     .modal-x {
-      width: 30px; height: 30px; border-radius: 50%; background: rgba(255,255,255,0.1);
-      border: none; color: var(--text-dim); font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+      width:30px; height:30px; border-radius:50%; background:rgba(255,255,255,0.09);
+      border:none; color:var(--text-dim); cursor:pointer; display:flex; align-items:center; justify-content:center;
     }
-    .modal-body { overflow-y: auto; padding: 16px 20px 30px; flex: 1; scrollbar-width: none; }
-    .modal-body::-webkit-scrollbar { display: none; }
-    .toggle-row { display: flex; gap: 8px; margin-bottom: 18px; }
+    .modal-body { overflow-y:auto; padding:16px 20px 30px; flex:1; scrollbar-width:none; }
+    .modal-body::-webkit-scrollbar { display:none; }
+    .toggle-row { display:flex; gap:8px; margin-bottom:18px; }
     .tgl {
-      flex: 1; padding: 11px; border-radius: 11px; font-size: 13px; font-weight: 700;
-      color: var(--text-dim); background: rgba(255,255,255,0.05); border: 1px solid transparent;
-      cursor: pointer; transition: all 0.2s; text-align: center;
+      flex:1; padding:11px; border-radius:11px; font-size:13px; font-weight:800;
+      color:var(--text-dim); background:rgba(255,255,255,0.05); border:1px solid transparent;
+      cursor:pointer; transition:all 0.2s; text-align:center;
     }
-    .tgl.on { background: rgba(94,180,255,0.18); border-color: rgba(94,180,255,0.3); color: var(--accent); }
-    .r-row { display: flex; align-items: center; gap: 14px; padding: 13px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
-    .r-row:last-child { border-bottom: none; }
-    .r-pos { width: 32px; text-align: center; font-size: 15px; font-weight: 800; color: var(--text-dim); }
-    .r-name { flex: 1; font-size: 14px; font-weight: 600; }
-    .r-val { font-size: 13px; font-weight: 800; color: var(--accent); }
-    .ref-item-m { display: flex; align-items: center; gap: 13px; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
-    .ref-item-m:last-child { border-bottom: none; }
-    .ref-av-m { width: 38px; height: 38px; border-radius: 11px; background: rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; flex-shrink: 0; }
-    .ref-prog-wrap { flex: 1; min-width: 0; }
-    .ref-prog-name { font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .ref-prog-bar { height: 3px; background: rgba(255,255,255,0.1); border-radius: 99px; margin-top: 7px; overflow: hidden; }
-    .ref-prog-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--accent), var(--accent2)); }
-    .ref-prog-num { font-size: 10px; color: var(--text-dim); margin-top: 3px; }
-    .badge-done { font-size: 10px; font-weight: 700; color: var(--success); text-transform: uppercase; letter-spacing: 0.5px; }
-    .badge-wait { font-size: 10px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
+    .tgl.on { background:rgba(0,180,255,0.18); border-color:rgba(0,180,255,0.3); color:var(--accent); }
+    .r-row { display:flex; align-items:center; gap:14px; padding:13px 0; border-bottom:1px solid rgba(255,255,255,0.06); }
+    .r-row:last-child { border-bottom:none; }
+    .r-pos { width:32px; text-align:center; font-size:15px; font-weight:800; color:var(--text-dim); }
+    .r-name { flex:1; font-size:14px; font-weight:600; }
+    .r-val { font-size:13px; font-weight:800; color:var(--accent); }
+    .ref-item-m { display:flex; align-items:center; gap:13px; padding:12px 0; border-bottom:1px solid rgba(255,255,255,0.06); }
+    .ref-item-m:last-child { border-bottom:none; }
+    .ref-av-m { width:38px; height:38px; border-radius:11px; background:rgba(255,255,255,0.07); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:14px; flex-shrink:0; }
+    .ref-prog-wrap { flex:1; min-width:0; }
+    .ref-prog-name { font-size:14px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .ref-prog-bar { height:3px; background:rgba(255,255,255,0.1); border-radius:99px; margin-top:7px; overflow:hidden; }
+    .ref-prog-fill { height:100%; border-radius:99px; background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+    .ref-prog-num { font-size:10px; color:var(--text-dim); margin-top:3px; }
+    .badge-done { font-size:10px; font-weight:800; color:var(--success); text-transform:uppercase; letter-spacing:0.5px; }
+    .badge-wait { font-size:10px; font-weight:700; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.5px; }
 
-    /* === NAV DOCK === */
+    /* NAV */
     .nav-dock {
-      position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
-      padding: 0 12px 20px; padding-bottom: max(20px, env(safe-area-inset-bottom));
+      position:fixed; bottom:0; left:0; right:0; z-index:100;
+      padding:0 12px; padding-bottom: max(18px, env(safe-area-inset-bottom));
     }
     .nav-inner {
-      background: rgba(18,18,30,0.75);
-      backdrop-filter: blur(28px) saturate(200%); -webkit-backdrop-filter: blur(28px) saturate(200%);
-      border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 26px;
-      display: flex; justify-content: space-around; align-items: center;
-      padding: 10px 8px 10px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1);
+      background: rgba(10,10,20,0.8);
+      backdrop-filter: blur(32px) saturate(220%); -webkit-backdrop-filter: blur(32px) saturate(220%);
+      border:1px solid rgba(255,255,255,0.1);
+      border-radius:28px;
+      display:flex; justify-content:space-around; align-items:center;
+      padding:8px 6px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.08);
     }
     .nav-item {
-      flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px;
-      color: rgba(255,255,255,0.35); cursor: pointer; transition: all 0.25s; padding: 4px 0;
-      position: relative;
+      flex:1; display:flex; flex-direction:column; align-items:center; gap:4px;
+      color:rgba(255,255,255,0.3); cursor:pointer; transition:all 0.28s; padding:5px 0;
+      position:relative;
     }
-    .nav-item svg { width: 22px; height: 22px; transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1); }
-    .nav-item span { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; transition: all 0.25s; }
-    .nav-item.active { color: var(--text); }
-    .nav-item.active svg { transform: translateY(-2px) scale(1.1); filter: drop-shadow(0 0 6px rgba(94,180,255,0.6)); }
-    .nav-item.active span { color: var(--accent); }
-    .nav-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--accent); position: absolute; bottom: -2px; opacity: 0; transition: opacity 0.25s; box-shadow: 0 0 6px var(--accent); }
-    .nav-item.active .nav-dot { opacity: 1; }
+    .nav-item svg { width:22px; height:22px; transition: transform 0.28s cubic-bezier(0.34,1.56,0.64,1); }
+    .nav-item span { font-size:9px; font-weight:800; text-transform:uppercase; letter-spacing:0.6px; transition:all 0.28s; }
+    .nav-item.active { color:var(--text); }
+    .nav-item.active svg { transform:translateY(-2px) scale(1.12); filter:drop-shadow(0 0 7px rgba(0,180,255,0.65)); }
+    .nav-item.active span { color:var(--accent); }
+    .nav-dot { width:4px; height:4px; border-radius:50%; background:var(--accent); position:absolute; bottom:-1px; opacity:0; transition:opacity 0.28s; box-shadow:0 0 6px var(--accent); }
+    .nav-item.active .nav-dot { opacity:1; }
 
-    /* === SPINNER === */
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .spin { animation: spin 0.8s linear infinite; display: inline-block; }
+    /* MISC */
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .spin { animation:spin 0.85s linear infinite; display:inline-block; }
+    .divider { height:1px; background: rgba(255,255,255,0.07); margin:6px 0 18px; }
 
-    /* === PULSE ANIMATION for watch button === */
     @keyframes pulse-ring {
-      0% { transform: scale(1); opacity: 0.5; }
-      100% { transform: scale(1.15); opacity: 0; }
+      0% { transform:scale(1); opacity:0.45; }
+      100% { transform:scale(1.14); opacity:0; }
     }
-    .pulse-wrap { position: relative; }
+    .pulse-wrap { position:relative; }
     .pulse-ring {
-      position: absolute; inset: 0; border-radius: 16px;
-      border: 2px solid rgba(94,180,255,0.5);
-      animation: pulse-ring 2s ease-out infinite;
-      pointer-events: none;
+      position:absolute; inset:0; border-radius:16px;
+      border:2px solid rgba(0,180,255,0.5);
+      animation:pulse-ring 2.2s ease-out infinite;
+      pointer-events:none;
     }
   </style>
 </head>
 <body>
 <div class="bg-mesh"></div>
-<div class="bg-noise"></div>
+<div class="bg-grid"></div>
 
 <div class="app">
+
   <!-- HEADER -->
   <div class="header-strip">
-    <div class="header-user">
-      <div class="avatar" id="avHead">L</div>
-      <div>
-        <div class="header-name" id="nameHead">Загрузка...</div>
-        <div class="header-id" id="idHead">ID: —</div>
+    <div class="header-logo">
+      <div class="logo-mark">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M12 2L2 7l10 5 10-5-10-5z" stroke="rgba(0,180,255,0.9)" stroke-width="2" stroke-linejoin="round"/>
+          <path d="M2 17l10 5 10-5" stroke="rgba(124,92,252,0.9)" stroke-width="2" stroke-linejoin="round"/>
+          <path d="M2 12l10 5 10-5" stroke="rgba(0,180,255,0.6)" stroke-width="2" stroke-linejoin="round"/>
+        </svg>
       </div>
+      <span class="logo-text">CashUp</span>
     </div>
-    <div class="header-bal">
-      <div class="header-bal-val" id="balHead">0</div>
-      <div class="header-bal-label">Lume</div>
+    <div class="header-user">
+      <div class="header-info">
+        <div class="header-name" id="nameHead">Загрузка...</div>
+        <div class="header-bal-row">
+          <div class="header-bal-val" id="balHead">0</div>
+          <div class="ton-badge-sm">TON</div>
+        </div>
+      </div>
+      <div class="avatar" id="avHead">C</div>
     </div>
   </div>
 
   <!-- SCROLL AREA -->
   <div class="scroll-area">
 
-    <!-- TAB: ADS -->
-    <div id="tabAds" class="tab active">
+    <!-- ========== TAB: TASKS (1) ========== -->
+    <div id="tabTasks" class="tab active">
+      <div class="sec-head">
+        <div class="sec-title">Задания</div>
+        <div class="sec-sub">Выполняй задания и получай вознаграждение в TON</div>
+      </div>
+
+      <!-- TOGGLE: Сложные / Лёгкие -->
+      <div class="task-toggle">
+        <button class="task-toggle-btn active" id="btnHard" onclick="switchTaskPane('hard')">⚡ Сложные</button>
+        <button class="task-toggle-btn" id="btnEasy" onclick="switchTaskPane('easy')">✅ Лёгкие</button>
+      </div>
+
+      <!-- PANE: Сложные -->
+      <div id="paneHard" class="task-pane active">
+        <div class="glass task-card">
+          <div class="task-difficulty-badge badge-hard">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><polygon points="13,2 3,14 12,14 11,22 21,10 12,10"/></svg>
+            Сложные задания
+          </div>
+          <div class="task-icon task-icon-hard">⚡</div>
+          <div class="task-card-title">Партнёрские задания</div>
+          <div class="task-card-desc">
+            Это задания повышенной сложности — они требуют больше времени и усилий,
+            но приносят более высокое вознаграждение. Следуй инструкциям и получай TON на баланс.
+          </div>
+          <div class="task-reward-row">
+            <div class="task-reward-item">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="var(--success)" stroke-width="2"/><path d="M12 6v6l4 2" stroke="var(--success)" stroke-width="2" stroke-linecap="round"/></svg>
+              <span class="task-reward-val">+0.001 TON</span>
+            </div>
+          </div>
+          <div class="pulse-wrap">
+            <div class="pulse-ring" style="border-color:rgba(255,95,126,0.4);"></div>
+            <button class="btn-primary" id="btnTask" style="background:linear-gradient(135deg,rgba(255,95,126,0.38),rgba(124,92,252,0.38));border-color:rgba(255,95,126,0.4);">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+                <polyline points="20,6 9,17 4,12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              Выполнять задания
+            </button>
+          </div>
+          <div class="task-note">
+            <strong style="color:var(--text-mid);">Важно:</strong> нажми на кнопку — внутри будут задания. Подписывайся на каналы или переходи на сайты. Только так выполнение засчитывается!
+          </div>
+        </div>
+      </div>
+
+      <!-- PANE: Лёгкие -->
+      <div id="paneEasy" class="task-pane">
+        <div class="glass task-card">
+          <div class="task-difficulty-badge badge-easy">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><polyline points="20,6 9,17 4,12"/></svg>
+            Лёгкие задания
+          </div>
+          <div class="task-icon task-icon-easy">✅</div>
+          <div class="task-card-title">Простые задания</div>
+          <div class="task-card-desc">
+            Быстрые и простые действия — подписки, переходы и оценки.
+            Занимают пару секунд, зато стабильно пополняют твой TON-баланс.
+          </div>
+          <div class="task-reward-row">
+            <div class="task-reward-item">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="var(--success)" stroke-width="2"/><path d="M12 6v6l4 2" stroke="var(--success)" stroke-width="2" stroke-linecap="round"/></svg>
+              <span class="task-reward-val">+0.0005 TON</span>
+            </div>
+          </div>
+          <div class="pulse-wrap">
+            <div class="pulse-ring" style="border-color:rgba(0,229,180,0.4);"></div>
+            <button class="btn-primary" id="btnTaskEasy" style="background:linear-gradient(135deg,rgba(0,229,180,0.3),rgba(0,180,255,0.35));border-color:rgba(0,229,180,0.4);">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+                <polyline points="20,6 9,17 4,12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              Выполнять задания
+            </button>
+          </div>
+          <div class="task-note">
+            <strong style="color:var(--text-mid);">Подсказка:</strong> задания обновляются каждый день — заходи регулярно, чтобы не пропустить новые!
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== TAB: ADS (2) ========== -->
+    <div id="tabAds" class="tab">
+
       <div class="glass bal-card">
-        <div class="bal-label">Текущий баланс</div>
+        <div class="bal-tag">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          Баланс CashUp
+        </div>
         <div class="bal-num" id="balMain">0</div>
-        <div class="bal-currency">LUME</div>
+        <div class="bal-ton">TON</div>
         <div class="progress-wrap">
           <div class="progress-labels">
-            <span>Цель: 100 000</span>
+            <span>Цель сообщества</span>
             <span id="pctMain">0%</span>
           </div>
           <div class="progress-track"><div class="progress-fill" id="fillMain"></div></div>
@@ -441,41 +688,83 @@ export default {
         </div>
       </div>
 
-      <div class="pulse-wrap">
-        <div class="pulse-ring"></div>
-        <button class="btn-main" id="btnWatch">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-            <polygon points="5,3 19,12 5,21" fill="currentColor"/>
-          </svg>
-          Инициировать просмотр
-        </button>
+      <div class="glass ads-hero">
+        <div class="ads-icon">📺</div>
+        <div class="ads-title">Смотри рекламу — получай TON</div>
+        <div class="ads-desc">
+          Каждый просмотренный ролик конвертируется в реальную криптовалюту TON.
+          Выплаты начисляются мгновенно — без задержек и скрытых условий.
+        </div>
+        <div class="ads-earn-row">
+          <div class="ads-earn-chip">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="var(--ton)" stroke-width="2"/><path d="M8 12h8M12 8v8" stroke="var(--ton)" stroke-width="2" stroke-linecap="round"/></svg>
+            <div>
+              <div class="ads-earn-val">+0.0001 TON</div>
+              <div class="ads-earn-sub">за каждый просмотр</div>
+            </div>
+          </div>
+        </div>
+        <div class="pulse-wrap">
+          <div class="pulse-ring"></div>
+          <button class="btn-ton" id="btnWatch">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <polygon points="5,3 19,12 5,21" fill="currentColor"/>
+            </svg>
+            Смотреть рекламу
+          </button>
+        </div>
+        <p style="text-align:center; font-size:11.5px; color:var(--text-dim); margin-top:16px; line-height:1.7; padding:0 4px;">
+          Все начисления производятся в криптовалюте TON. Выплаты — по достижению минимального порога вывода.
+        </p>
       </div>
 
-      <p style="text-align:center; font-size:12px; color:var(--text-dim); margin-top:18px; line-height:1.65; padding: 0 8px;">
-        Система монетизации внимания. Каждый просмотренный материал конвертируется во внутренний актив платформы.
-      </p>
+    </div>
 
-      <!-- REFERRAL -->
-      <div class="ref-divider"></div>
+    <!-- ========== TAB: REFERRAL (3) ========== -->
+    <div id="tabRef" class="tab">
+      <div class="sec-head">
+        <div class="sec-title">Реферальная программа</div>
+        <div class="sec-sub">Приглашай друзей и зарабатывай TON вместе</div>
+      </div>
 
-      <div class="ref-highlight">
-        <div class="ref-highlight-title">Приглашай друзей</div>
-        <div class="ref-highlight-desc">
-          Получай <b>+100 Lume</b> за каждого друга и <b>10%</b> от их заработка.<br>
-          Реферал засчитывается после просмотра 15 рекламных роликов.
+      <div class="glass ref-hero">
+        <div class="ref-hero-icon">🤝</div>
+        <div class="ref-hero-title">Зарабатывай с друзьями</div>
+        <div class="ref-hero-desc">
+          Получай <b>+0.01 TON</b> за каждого приглашённого друга<br>
+          и <b>10%</b> от его заработка на рекламе навсегда.<br>
+          Реферал засчитывается после 15 просмотров рекламы.
         </div>
       </div>
 
-      <div class="ref-link-row glass">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="flex-shrink:0; opacity:0.5;">
-          <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-        </svg>
-        <div class="ref-link-text" id="refLinkBox">Загрузка...</div>
-        <button class="copy-btn" onclick="copyRef()">Копировать</button>
+      <div class="ref-stats-row">
+        <div class="glass ref-stat-card">
+          <div class="ref-stat-val" id="refCountMain">0</div>
+          <div class="ref-stat-label">Рефералов</div>
+        </div>
+        <div class="glass ref-stat-card">
+          <div class="ref-stat-val" id="refEarnMain">0</div>
+          <div class="ref-stat-label">Заработано</div>
+        </div>
       </div>
 
-      <button class="btn-main" onclick="shareRef()">
+      <div class="ref-note">
+        💡 <b>Как это работает:</b> твой друг регистрируется по ссылке → смотрит 15 роликов → ты получаешь <b>+0.01 TON</b>. После этого 10% от каждого его просмотра идёт тебе автоматически.
+      </div>
+
+      <div class="ref-link-wrap">
+        <div class="ref-link-label">Твоя реферальная ссылка</div>
+        <div class="ref-link-box glass">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="flex-shrink:0; opacity:0.45;">
+            <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <div class="ref-link-text" id="refLinkBox">Загрузка...</div>
+          <button class="copy-btn" onclick="copyRef()">Копировать</button>
+        </div>
+      </div>
+
+      <button class="btn-primary" onclick="shareRef()">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
           <circle cx="18" cy="5" r="3" stroke="currentColor" stroke-width="2"/>
           <circle cx="6" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
@@ -497,41 +786,13 @@ export default {
       </button>
     </div>
 
-    <!-- TAB: TASKS -->
-    <div id="tabTasks" class="tab">
-      <div class="sec-title">Задания</div>
-      <div class="sec-sub">Выполняй задания и пополняй баланс</div>
-
-      <div class="task-card glass">
-        <div class="task-reward-badge">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-            <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
-          </svg>
-          +5 очков к общей цели
-        </div>
-        <div class="task-title">Партнёрские задания</div>
-        <div class="task-desc">
-          Выполняй задания по кнопке ниже и получай сразу <strong style="color:var(--success);">+5 очков</strong> к общей цели сообщества — помогай платформе расти быстрее.
-        </div>
-        <button class="btn-main" id="btnTask">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
-            <polyline points="20,6 9,17 4,12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          Выполнять
-        </button>
-        <div class="task-note">
-          <strong style="color:var(--text-mid);">Важно:</strong> необходимо нажимать на эту ссылку, а там уже подписываться на каналы или переходить на сайты. Только так выполнение засчитывается!
-        </div>
-      </div>
-    </div>
-
-    <!-- TAB: PROFILE -->
+    <!-- ========== TAB: PROFILE (4) ========== -->
     <div id="tabProfile" class="tab">
-      <div class="sec-title">Профиль</div>
-      <div class="sec-sub">Статистика вашего аккаунта</div>
+      <div class="sec-title" style="margin-bottom:4px;">Профиль</div>
+      <div class="sec-sub" style="margin-bottom:16px;">Статистика вашего аккаунта</div>
 
       <div class="glass prof-hero">
-        <div class="prof-avatar" id="avProf">L</div>
+        <div class="prof-avatar" id="avProf">C</div>
         <div>
           <div class="prof-name" id="nameProf">User</div>
           <div class="prof-id" id="idProf">ID: —</div>
@@ -540,8 +801,8 @@ export default {
 
       <div class="glass card">
         <div class="stat-row">
-          <div class="stat-label">Активный капитал</div>
-          <div class="stat-val" id="profBal">0 LUME</div>
+          <div class="stat-label">Баланс</div>
+          <div class="stat-val" id="profBal">0 <span style="font-size:11px;color:var(--ton);">TON</span></div>
         </div>
         <div class="stat-row">
           <div class="stat-label">Просмотров рекламы</div>
@@ -553,12 +814,12 @@ export default {
         </div>
       </div>
 
-      <div class="glass" style="margin-bottom:14px; border-radius:var(--r); overflow:hidden;" onclick="openRating()">
+      <div class="glass" style="margin-bottom:13px; border-radius:var(--r); overflow:hidden;" onclick="openRating()">
         <div class="trophy-row">
           <div class="trophy-icon-wrap">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <path d="M8 21h8M12 17v4M17 3H7l1 7c0 2.21 1.79 4 4 4s4-1.79 4-4l1-7z" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M17 4h2a2 2 0 011.92 2.56L19 11M7 4H5a2 2 0 00-1.92 2.56L5 11" stroke="#fbbf24" stroke-width="2" stroke-linecap="round"/>
+              <path d="M8 21h8M12 17v4M17 3H7l1 7c0 2.21 1.79 4 4 4s4-1.79 4-4l1-7z" stroke="#f5c842" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M17 4h2a2 2 0 011.92 2.56L19 11M7 4H5a2 2 0 00-1.92 2.56L5 11" stroke="#f5c842" stroke-width="2" stroke-linecap="round"/>
             </svg>
           </div>
           <div class="trophy-texts">
@@ -571,46 +832,49 @@ export default {
         </div>
       </div>
 
-      <button class="btn-ghost" style="border-color:rgba(255,255,255,0.08); color:var(--text-dim);" onclick="alert('Модуль вывода средств заблокирован до официального релиза платформы.')">
+      <button class="btn-ghost" style="border-color:rgba(255,255,255,0.08); color:var(--text-dim);" onclick="alert('Вывод средств будет доступен после официального релиза платформы.')">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
           <rect x="1" y="4" width="22" height="16" rx="2" stroke="currentColor" stroke-width="2"/>
           <line x1="1" y1="10" x2="23" y2="10" stroke="currentColor" stroke-width="2"/>
         </svg>
-        Запросить вывод средств
+        Вывести средства
       </button>
     </div>
 
-    <!-- TAB: INFO -->
+    <!-- ========== TAB: INFO (5) ========== -->
     <div id="tabInfo" class="tab">
-      <div class="sec-title">О проекте</div>
-      <div class="sec-sub">Официальная информация и связь с разработчиками</div>
+      <div class="sec-title" style="margin-bottom:4px;">О проекте</div>
+      <div class="sec-sub" style="margin-bottom:16px;">Официальная информация и связь с командой</div>
 
       <div class="glass info-card">
-        <div class="info-title">Архитектура LUME</div>
+        <div class="info-title">Как работает CashUp</div>
         <div class="info-text">
-          Мы создаём прозрачную экономическую модель. Рекламодатели инвестируют во внимание аудитории, а пользователи получают прямую долю дохода за взаимодействие с контентом. Средства аккумулируются и распределяются алгоритмически.
+          CashUp — платформа заработка на выполнении заданий и просмотре рекламы.
+          Все выплаты производятся в криптовалюте <span class="ton-highlight">💎 TON</span>.
+          Рекламодатели платят за внимание аудитории, а пользователи получают прямую долю дохода.
         </div>
       </div>
 
       <div class="glass info-card">
-        <div class="info-title">Стратегия</div>
+        <div class="info-title">Криптовалюта TON</div>
         <div class="info-text">
-          Стратегическая цель платформы — выпуск утилитарного токена и его листинг на децентрализованных площадках. Накопление баллов на текущем этапе обеспечит максимальное преимущество при конвертации.
+          Все начисления — в TON (The Open Network), блокчейне от команды Telegram.
+          Это быстрая, дешёвая и надёжная сеть. Средства можно вывести на любой TON-кошелёк после достижения минимального порога.
         </div>
       </div>
 
-      <button class="btn-main" onclick="tg.openTelegramLink('https://t.me/')" style="margin-bottom:10px;">
+      <button class="btn-primary" onclick="tg.openTelegramLink('https://t.me/')" style="margin-bottom:10px;">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
           <line x1="22" y1="2" x2="11" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           <polygon points="22,2 15,22 11,13 2,9" stroke="currentColor" stroke-width="2" fill="none" stroke-linejoin="round"/>
         </svg>
         Новостной канал
       </button>
-      <button class="btn-ghost" onclick="tg.openTelegramLink('https://t.me/lume_project_support')">
+      <button class="btn-ghost" onclick="tg.openTelegramLink('https://t.me/cashup_support')">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
           <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
-        Служба поддержки
+        Поддержка
       </button>
     </div>
 
@@ -620,7 +884,16 @@ export default {
   <div class="nav-dock">
     <div class="nav-inner">
 
-      <div class="nav-item active" id="nav-ads" onclick="goTab('tabAds','nav-ads')">
+      <div class="nav-item active" id="nav-tasks" onclick="goTab('tabTasks','nav-tasks')">
+        <svg viewBox="0 0 24 24" fill="none">
+          <rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="1.8"/>
+          <polyline points="8,12 10.5,14.5 16,9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>Задания</span>
+        <div class="nav-dot"></div>
+      </div>
+
+      <div class="nav-item" id="nav-ads" onclick="goTab('tabAds','nav-ads')">
         <svg viewBox="0 0 24 24" fill="none">
           <rect x="2" y="4" width="20" height="14" rx="3" stroke="currentColor" stroke-width="1.8"/>
           <polygon points="10,9 16,12 10,15" fill="currentColor"/>
@@ -629,12 +902,15 @@ export default {
         <div class="nav-dot"></div>
       </div>
 
-      <div class="nav-item" id="nav-tasks" onclick="goTab('tabTasks','nav-tasks')">
+      <div class="nav-item" id="nav-ref" onclick="goTab('tabRef','nav-ref')">
         <svg viewBox="0 0 24 24" fill="none">
-          <rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="1.8"/>
-          <polyline points="8,12 10.5,14.5 16,9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="18" cy="5" r="3" stroke="currentColor" stroke-width="1.8"/>
+          <circle cx="6" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/>
+          <circle cx="18" cy="19" r="3" stroke="currentColor" stroke-width="1.8"/>
+          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" stroke="currentColor" stroke-width="1.8"/>
+          <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" stroke="currentColor" stroke-width="1.8"/>
         </svg>
-        <span>Задания</span>
+        <span>Рефералы</span>
         <div class="nav-dot"></div>
       </div>
 
@@ -685,7 +961,7 @@ export default {
     <div class="modal-handle"></div>
     <div class="modal-head">
       <h3 style="display:flex;align-items:center;gap:8px;">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M8 21h8M12 17v4M17 3H7l1 7c0 2.21 1.79 4 4 4s4-1.79 4-4l1-7z" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M17 4h2a2 2 0 011.92 2.56L19 11M7 4H5a2 2 0 00-1.92 2.56L5 11" stroke="#fbbf24" stroke-width="2" stroke-linecap="round"/></svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M8 21h8M12 17v4M17 3H7l1 7c0 2.21 1.79 4 4 4s4-1.79 4-4l1-7z" stroke="#f5c842" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M17 4h2a2 2 0 011.92 2.56L19 11M7 4H5a2 2 0 00-1.92 2.56L5 11" stroke="#f5c842" stroke-width="2" stroke-linecap="round"/></svg>
         Рейтинг
       </h3>
       <button class="modal-x" onclick="closeModal('modalRating')">
@@ -694,7 +970,7 @@ export default {
     </div>
     <div class="modal-body">
       <div class="toggle-row">
-        <div class="tgl on" id="tgBal" onclick="loadRating('balance')">По капиталу</div>
+        <div class="tgl on" id="tgBal" onclick="loadRating('balance')">По балансу</div>
         <div class="tgl" id="tgRef" onclick="loadRating('referrals')">По рефералам</div>
       </div>
       <div id="ratingList">
@@ -709,15 +985,13 @@ export default {
 <script>
 const tg = window.Telegram.WebApp;
 tg.expand();
-tg.setHeaderColor && tg.setHeaderColor('#0a0a0f');
-tg.setBackgroundColor && tg.setBackgroundColor('#0a0a0f');
+tg.setHeaderColor && tg.setHeaderColor('#060610');
+tg.setBackgroundColor && tg.setBackgroundColor('#060610');
 
 const user = tg.initDataUnsafe?.user || { id: '123456', first_name: 'Пользователь', username: 'guest' };
 const userId = user.id.toString();
-const botUsername = 'lume_project_bot'; // Без @
+const botUsername = 'cashup_bot'; // Замени на свой бот
 const startParam = tg.initDataUnsafe?.start_param || null;
-
-// Ref URL — startapp формат
 const refUrl = 'https://t.me/' + botUsername + '/app?startapp=' + userId;
 
 async function syncData() {
@@ -738,20 +1012,21 @@ async function syncData() {
 
     document.getElementById('balMain').textContent = u.balance.toLocaleString();
     document.getElementById('balHead').textContent = bal;
-    document.getElementById('profBal').textContent = bal + ' LUME';
+    document.getElementById('profBal').innerHTML = bal + ' <span style="font-size:11px;color:var(--ton);">TON</span>';
     document.getElementById('profAds').textContent = ads;
     document.getElementById('profRefs').textContent = refs;
     document.getElementById('refBadge').textContent = refs;
+    document.getElementById('refCountMain').textContent = refs;
+    document.getElementById('refEarnMain').textContent = (refs * 0.01).toFixed(3);
 
     ['avHead','avProf'].forEach(id => document.getElementById(id).textContent = ini);
     ['nameHead','nameProf'].forEach(id => document.getElementById(id).textContent = u.firstName);
-    ['idHead','idProf'].forEach(id => document.getElementById(id).textContent = 'ID: ' + userId);
+    ['idProf'].forEach(id => document.getElementById(id).textContent = 'ID: ' + userId);
 
     const p = Math.min((s.views / 100000) * 100, 100);
     document.getElementById('pctMain').textContent = p.toFixed(1) + '%';
     document.getElementById('fillMain').style.width = p + '%';
     document.getElementById('viewsMain').textContent = s.views.toLocaleString();
-
     document.getElementById('refLinkBox').textContent = refUrl;
   } catch(e) { console.error(e); }
 }
@@ -768,15 +1043,13 @@ document.getElementById('btnWatch').onclick = async () => {
     });
     const d = await r.json();
     tg.HapticFeedback.notificationOccurred('success');
-    if (d.adsWatched === 15) tg.showAlert('Вы получили 100 Lume как реферальный бонус!');
+    if (d.adsWatched === 15) tg.showAlert('🎉 Ты получил реферальный бонус в TON!');
     syncData();
   } catch(e) { tg.HapticFeedback.notificationOccurred('error'); }
 };
 
-// Task button
-document.getElementById('btnTask').onclick = async () => {
-  tg.HapticFeedback.impactOccurred('medium');
-  tg.openTelegramLink('https://t.me/linknibot/app?startapp=x_lkfh');
+// Task buttons
+async function doTaskReward() {
   try {
     await fetch('/api/task-reward', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -785,6 +1058,25 @@ document.getElementById('btnTask').onclick = async () => {
     tg.HapticFeedback.notificationOccurred('success');
     syncData();
   } catch(e) {}
+}
+document.getElementById('btnTask').onclick = () => {
+  tg.HapticFeedback.impactOccurred('medium');
+  tg.openTelegramLink('https://t.me/linknibot/app?startapp=x_lkfh');
+  doTaskReward();
+};
+document.getElementById('btnTaskEasy').onclick = () => {
+  tg.HapticFeedback.impactOccurred('medium');
+  tg.openTelegramLink('https://t.me/linknibot/app?startapp=x_lkfh');
+  doTaskReward();
+};
+
+// Task pane switch
+window.switchTaskPane = (type) => {
+  tg.HapticFeedback.selectionChanged();
+  document.getElementById('paneHard').classList.toggle('active', type === 'hard');
+  document.getElementById('paneEasy').classList.toggle('active', type === 'easy');
+  document.getElementById('btnHard').classList.toggle('active', type === 'hard');
+  document.getElementById('btnEasy').classList.toggle('active', type === 'easy');
 };
 
 // Navigation
@@ -796,10 +1088,10 @@ window.goTab = (tabId, navId) => {
   document.getElementById(navId).classList.add('active');
 };
 
-// Referral
+// Referral share/copy
 window.shareRef = () => {
   tg.HapticFeedback.impactOccurred('light');
-  const text = 'Присоединяйся к LUME — зарабатывай за просмотр рекламы!';
+  const text = 'Присоединяйся к CashUp — зарабатывай TON за задания и просмотр рекламы!';
   tg.openTelegramLink('https://t.me/share/url?url=' + encodeURIComponent(refUrl) + '&text=' + encodeURIComponent(text));
 };
 window.copyRef = () => {
@@ -825,7 +1117,7 @@ window.openMyRefs = async () => {
       document.getElementById('bodyRefs').innerHTML = '<div style="text-align:center;padding:40px 20px;color:var(--text-dim);font-size:14px;line-height:1.7;">У вас пока нет рефералов.<br>Поделитесь ссылкой, чтобы начать зарабатывать.</div>';
       return;
     }
-    let h = '<div style="font-size:11.5px;color:var(--text-dim);margin-bottom:14px;padding:10px 12px;background:rgba(255,255,255,0.04);border-radius:10px;border-left:2px solid rgba(94,180,255,0.4);">Реферал засчитывается после 15 просмотров рекламы</div>';
+    let h = '<div style="font-size:11.5px;color:var(--text-dim);margin-bottom:14px;padding:10px 12px;background:rgba(0,180,255,0.06);border-radius:10px;border-left:2px solid rgba(0,180,255,0.4);">Реферал засчитывается после 15 просмотров рекламы</div>';
     list.forEach(u => {
       const prog = Math.min(u.totalAdsWatched || 0, 15);
       const done = prog >= 15;
@@ -860,7 +1152,7 @@ window.loadRating = async (type) => {
     const medals = ['', '🥇', '🥈', '🥉'];
     let h = '';
     list.forEach((u, i) => {
-      const val = type === 'balance' ? u.balance.toLocaleString() + ' L' : (u.referrals || 0) + ' реф.';
+      const val = type === 'balance' ? u.balance.toLocaleString() + ' TON' : (u.referrals || 0) + ' реф.';
       const pos = i < 3
         ? \`<div class="r-pos" style="font-size:18px;">\${medals[i+1]}</div>\`
         : \`<div class="r-pos" style="color:var(--text-dim);">#\${i+1}</div>\`;
@@ -870,7 +1162,7 @@ window.loadRating = async (type) => {
   } catch(e) {}
 };
 
-// Modal close
+// Modal helpers
 window.closeModal = (id) => {
   tg.HapticFeedback.impactOccurred('light');
   document.getElementById(id).classList.remove('open');

@@ -5,7 +5,7 @@ export default {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Giga Tasks</title>
+  <title>CashUp - Задания</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     body {
@@ -37,6 +37,8 @@ export default {
       color: #888;
       text-align: center;
     }
+    .success { color: #00e5b4; }
+    .error { color: #ff5f7e; }
   </style>
 </head>
 <body>
@@ -53,72 +55,85 @@ tg.ready();
 const statusDiv = document.getElementById('status');
 const btn = document.getElementById('taskBtn');
 
-let offerwall = null;
-
-// Загружаем SDK
-const script = document.createElement('script');
-script.src = 'https://wall.giga.pub/api/v1/loader.js?projectId=6822';
-script.onload = function() {
-  statusDiv.innerHTML = 'SDK загружен, инициализация...';
-  
-  let attempts = 0;
-  const interval = setInterval(function() {
-    attempts++;
-    if (window.OfferWallSDKLoader) {
-      clearInterval(interval);
-      try {
-        // Вызываем OfferWallSDKLoader как функцию
-        offerwall = window.OfferWallSDKLoader();
-        statusDiv.innerHTML = '✅ Готово! Нажми на кнопку';
-        statusDiv.style.color = '#00e5b4';
-        btn.disabled = false;
-      } catch(e) {
-        statusDiv.innerHTML = '❌ Ошибка: ' + e.message;
-        statusDiv.style.color = '#ff5f7e';
-      }
-    } else if (attempts > 30) {
-      clearInterval(interval);
+// Правильная загрузка SDK по документации
+document.addEventListener('DOMContentLoaded', function() {
+  if (!window.loadOfferWallSDK) {
+    const script = document.createElement('script');
+    script.src = 'https://wall.giga.pub/api/v1/loader.js?projectId=6822';
+    script.async = true;
+    script.onload = function() {
+      statusDiv.innerHTML = '✅ SDK загружен, инициализация...';
+      statusDiv.style.color = '#00e5b4';
+      
+      // Ждем появления функции
+      let attempts = 0;
+      const interval = setInterval(function() {
+        attempts++;
+        if (window.loadOfferWallSDK) {
+          clearInterval(interval);
+          statusDiv.innerHTML = '✅ Готово! Нажми на кнопку';
+          btn.disabled = false;
+        } else if (attempts > 30) {
+          clearInterval(interval);
+          statusDiv.innerHTML = '❌ Ошибка инициализации';
+          statusDiv.style.color = '#ff5f7e';
+        }
+      }, 200);
+    };
+    script.onerror = function() {
       statusDiv.innerHTML = '❌ Ошибка загрузки SDK';
       statusDiv.style.color = '#ff5f7e';
-    }
-  }, 200);
-};
-document.head.appendChild(script);
+    };
+    document.head.appendChild(script);
+  }
+});
 
 btn.disabled = true;
 
-// Открываем задания
+// Функция открытия заданий
 btn.onclick = function() {
-  if (!offerwall) {
-    statusDiv.innerHTML = '⏳ Подожди, SDK еще грузится...';
+  if (!window.loadOfferWallSDK) {
+    statusDiv.innerHTML = '⏳ SDK еще грузится...';
     return;
   }
   
   statusDiv.innerHTML = '🔄 Открываю задания...';
   
   try {
-    // Пробуем разные возможные методы
+    // Вызываем функцию загрузки SDK
+    const offerwall = window.loadOfferWallSDK();
+    
     if (offerwall && typeof offerwall.show === 'function') {
       offerwall.show({
-        onReward: function(reward) {
+        onReward: function(data) {
           statusDiv.innerHTML = '✅ Задание выполнено! +5 TON';
+          statusDiv.style.color = '#00e5b4';
           tg.HapticFeedback.notificationOccurred('success');
-          tg.showAlert('Вы получили 5 TON!');
+          
+          // Отправляем запрос на начисление награды
+          fetch('/api/task-reward', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: tg.initDataUnsafe?.user?.id })
+          });
+          
+          tg.showAlert('Вы получили 5 TON за выполнение задания!');
         },
         onClose: function() {
-          statusDiv.innerHTML = '✅ Готово!';
+          statusDiv.innerHTML = '✅ Готово! Нажми на кнопку';
+        },
+        onError: function(error) {
+          console.error(error);
+          statusDiv.innerHTML = '❌ Ошибка: ' + JSON.stringify(error);
+          statusDiv.style.color = '#ff5f7e';
         }
       });
-    } else if (offerwall && typeof offerwall.open === 'function') {
-      offerwall.open();
-      statusDiv.innerHTML = '✅ Задания открыты';
     } else {
-      // Если нет методов, показываем что объект пустой
-      statusDiv.innerHTML = '⚠️ SDK инициализирован, но методов нет. Обратитесь в поддержку Giga';
-      console.log('Offerwall object:', offerwall);
+      statusDiv.innerHTML = '⚠️ Метод show не найден. Обратитесь в поддержку';
     }
   } catch(e) {
     statusDiv.innerHTML = '❌ Ошибка: ' + e.message;
+    statusDiv.style.color = '#ff5f7e';
   }
 };
 </script>

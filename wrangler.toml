@@ -1,0 +1,3 @@
+name = "bot"
+main = "worker.js"
+compatibility_date = "2026-05-29"

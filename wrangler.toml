@@ -1,4 +1,4 @@
-name = "cash-miniapp"
+name = "cash-app"
 main = "worker.js"
 compatibility_date = "2026-05-29"
 

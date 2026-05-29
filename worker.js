@@ -25,7 +25,7 @@ export default {
       font-weight: bold;
       cursor: pointer;
       width: 100%;
-      margin-top: 20px;
+      margin-top: 10px;
     }
     .log {
       background: #1a1a2e;
@@ -35,8 +35,7 @@ export default {
       font-size: 12px;
       font-family: monospace;
       white-space: pre-wrap;
-      word-break: break-all;
-      max-height: 300px;
+      max-height: 400px;
       overflow-y: auto;
     }
     .success { color: #00e5b4; }
@@ -46,11 +45,10 @@ export default {
 </head>
 <body>
 <div>
-  <h3>Тест Giga.pub SDK</h3>
-  <button id="loadBtn">1. Загрузить SDK вручную</button>
-  <button id="checkBtn" style="background:#333">2. Проверить статус</button>
-  <button id="openBtn" style="background:#7c5cfc">3. Открыть задания</button>
-  <div class="log" id="log">Лог будет тут...</div>
+  <h3>Поиск правильного API Giga.pub</h3>
+  <button id="checkWindow">Проверить window</button>
+  <button id="tryLoad">Загрузить и проверить</button>
+  <div class="log" id="log"></div>
 </div>
 
 <script>
@@ -66,81 +64,83 @@ function addLog(msg, type = 'info') {
   console.log(msg);
 }
 
-addLog('Страница загружена. Giga SDK: ' + (window.giga ? 'ЕСТЬ' : 'НЕТ'), window.giga ? 'success' : 'error');
+// Проверяем все возможные объекты
+document.getElementById('checkWindow').onclick = function() {
+  addLog('=== ПРОВЕРКА WINDOW ===');
+  const keys = Object.keys(window).filter(k => k.toLowerCase().includes('giga') || k.toLowerCase().includes('offer') || k.toLowerCase().includes('wall'));
+  addLog('Найдено ключей с giga/offer/wall: ' + keys.length);
+  keys.forEach(k => addLog('  - ' + k + ': ' + typeof window[k]));
+  
+  // Проверяем giga
+  if (window.giga) addLog('window.giga есть', 'success');
+  else addLog('window.giga НЕТ', 'error');
+  
+  // Проверяем loadOfferWallSDK
+  if (window.loadOfferWallSDK) addLog('window.loadOfferWallSDK есть', 'success');
+  else addLog('window.loadOfferWallSDK НЕТ', 'error');
+  
+  // Проверяем другие варианты
+  if (window.OfferWall) addLog('window.OfferWall есть', 'success');
+  if (window.gigaWall) addLog('window.gigaWall есть', 'success');
+  if (window.Giga) addLog('window.Giga есть', 'success');
+};
 
-// Ручная загрузка SDK
-document.getElementById('loadBtn').onclick = function() {
-  addLog('Загружаю SDK вручную...');
+// Загружаем и проверяем
+document.getElementById('tryLoad').onclick = function() {
+  addLog('Загружаю SDK...');
+  
   const script = document.createElement('script');
   script.src = 'https://wall.giga.pub/api/v1/loader.js?projectId=6822';
+  
   script.onload = function() {
-    addLog('✅ Скрипт загружен! Жду инициализации...', 'success');
-    setTimeout(function() {
-      addLog('Giga объект: ' + (window.giga ? 'ЕСТЬ' : 'НЕТ'), window.giga ? 'success' : 'error');
-      if (window.giga) {
-        addLog('Методы giga: ' + Object.keys(window.giga).join(', '));
+    addLog('Скрипт загружен', 'success');
+    setTimeout(() => {
+      addLog('=== ЧЕРЕЗ 1 СЕКУНДУ ===');
+      
+      // Проверяем все глобальные объекты
+      for (let key in window) {
+        if (key.toLowerCase().includes('giga') || key.toLowerCase().includes('offer') || key.toLowerCase().includes('wall')) {
+          addLog('Найден: window.' + key + ' = ' + typeof window[key]);
+        }
       }
+      
+      // Пробуем вызвать если есть
+      if (window.loadOfferWallSDK && typeof window.loadOfferWallSDK === 'function') {
+        addLog('Вызываю loadOfferWallSDK()...');
+        try {
+          const result = window.loadOfferWallSDK();
+          addLog('Результат: ' + JSON.stringify(result));
+        } catch(e) {
+          addLog('Ошибка: ' + e.message, 'error');
+        }
+      }
+      
+      // Пробуем инициализировать если есть
+      if (window.OfferWall && typeof window.OfferWall.init === 'function') {
+        addLog('Вызываю OfferWall.init()...');
+        try {
+          window.OfferWall.init({ projectId: 6822 });
+          addLog('Инициализация успешна');
+        } catch(e) {
+          addLog('Ошибка: ' + e.message, 'error');
+        }
+      }
+      
     }, 1000);
   };
+  
   script.onerror = function() {
-    addLog('❌ Ошибка загрузки скрипта!', 'error');
+    addLog('ОШИБКА загрузки скрипта!', 'error');
   };
+  
   document.head.appendChild(script);
 };
 
-// Проверка статуса
-document.getElementById('checkBtn').onclick = function() {
-  addLog('Проверка: window.giga = ' + (window.giga ? 'ЕСТЬ' : 'НЕТ'));
-  if (window.giga) {
-    addLog('Тип: ' + typeof window.giga);
-    addLog('Методы: ' + Object.keys(window.giga).join(', '));
-  }
-};
-
-// Открытие заданий
-document.getElementById('openBtn').onclick = function() {
-  if (!window.giga) {
-    addLog('❌ Giga не загружен! Сначала нажми кнопку 1', 'error');
-    return;
-  }
-  
-  addLog('Пытаюсь открыть задания...');
-  
-  try {
-    if (typeof window.giga.show === 'function') {
-      window.giga.show({
-        onReward: function(reward) {
-          addLog('✅ Награда! Получено: ' + JSON.stringify(reward), 'success');
-          tg.HapticFeedback.notificationOccurred('success');
-        },
-        onClose: function() {
-          addLog('📋 Окно заданий закрыто', 'info');
-        },
-        onError: function(err) {
-          addLog('❌ Ошибка: ' + JSON.stringify(err), 'error');
-        }
-      });
-    } else {
-      addLog('❌ Метод show не найден. Объект giga: ' + JSON.stringify(window.giga), 'error');
-    }
-  } catch(e) {
-    addLog('❌ Исключение: ' + e.message, 'error');
-  }
-};
-
-// Автоматическая попытка загрузить при старте
-addLog('Автоматическая загрузка SDK...');
-const autoScript = document.createElement('script');
-autoScript.src = 'https://wall.giga.pub/api/v1/loader.js?projectId=6822';
-autoScript.onload = function() {
-  addLog('Авто-загрузка: скрипт загружен', 'success');
-  setTimeout(function() {
-    if (window.giga) {
-      addLog('✅ SDK готов к использованию!', 'success');
-    }
-  }, 1500);
-};
-document.head.appendChild(autoScript);
+// Автоматическая проверка при старте
+addLog('Страница загружена, проверяю...');
+setTimeout(() => {
+  document.getElementById('checkWindow').click();
+}, 500);
 </script>
 </body>
 </html>`;

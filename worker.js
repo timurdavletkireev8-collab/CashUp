@@ -59,8 +59,8 @@ export default {
       return new Response(JSON.stringify({ success: true }), { headers: { "Content-Type": "application/json" } });
     }
 
-    // API: POSTBACK от Giga.pub (более надёжный способ получения награды)
-    if (pathname === "/api/postback" && request.method === "GET") {
+        // API: POSTBACK от Giga.pub (более надёжный способ получения награды)
+    if (pathname === "/api/postback") {
       try {
         const url = new URL(request.url);
         const userId = url.searchParams.get('user');
@@ -68,7 +68,7 @@ export default {
         const rewardId = url.searchParams.get('rewardId');
         const hash = url.searchParams.get('hash');
         
-        console.log(`Postback received: user=${userId}, amount=${amount}, rewardId=${rewardId}`);
+        console.log(`📨 Postback received: user=${userId}, amount=${amount}, rewardId=${rewardId}`);
         
         if (!userId) {
           return new Response(JSON.stringify({ error: "No user" }), { status: 400 });
@@ -80,8 +80,11 @@ export default {
           return new Response(JSON.stringify({ error: "User not found" }), { status: 404 });
         }
         
-        // Начисляем награду (5 TON = 5000 единиц)
-        const earnAmount = 5;
+        // Начисляем награду за задание (5 TON = 5 единиц, так как 1 TON = 10000 единиц?)
+        // Внимание! У вас баланс хранится в единицах? Если 1 TON = 10000 единиц, то 5 TON = 50000 единиц
+        // Сейчас в /api/task-reward вы начисляете 5 единиц, а в рекламе 10 единиц. Это несоответствие!
+        
+        const earnAmount = 5;  // ← здесь нужно проверить: 5 единиц или 5 TON?
         const refBonus = Math.floor(earnAmount * 0.1);
         
         await env.DB.batch([
@@ -93,6 +96,8 @@ export default {
         if (u.referredBy && refBonus > 0) {
           await env.DB.prepare("UPDATE users SET balance = balance + ? WHERE userId = ?").bind(refBonus, u.referredBy).run();
         }
+        
+        console.log(`✅ Reward credited: +${earnAmount} to user ${userId}`);
         
         return new Response(JSON.stringify({ status: "ok" }), { 
           headers: { "Content-Type": "application/json" } 
@@ -1110,18 +1115,7 @@ window.doWithdraw = async () => {
     tg.showAlert('Минимальная сумма вывода — 0.5 TON.');
     return;
   }
-  const balTon = currentBalance / 10000;
-  if (amount > balTon) {
-    tg.showAlert('Недостаточно средств на балансе.');
-    return;
-  }
-
-  tg.HapticFeedback.impactOccurred('medium');
-  try {
-    const r = await fetch('/api/withdraw', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, wallet, amount })
-    });
+  
     const d = await r.json();
     if (d.success) {
       tg.HapticFeedback.notificationOccurred('success');

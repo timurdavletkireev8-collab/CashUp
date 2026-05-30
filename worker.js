@@ -990,8 +990,10 @@ tg.setBackgroundColor && tg.setBackgroundColor('#060610');
 const user = tg.initDataUnsafe?.user || { id: '123456', first_name: 'Пользователь', username: 'guest' };
 const userId = user.id.toString();
 const botUsername = 'CashUpTaskBot';
-const startParam = tg.initDataUnsafe?.start_param || null;
-const refUrl = 'https://t.me/' + botUsername + '/app?startapp=' + userId;
+// Реферал: сначала из start_param (startapp), потом из #ref= в хеше URL
+const startParam = tg.initDataUnsafe?.start_param ||
+  (window.location.hash.includes('ref=') ? window.location.hash.split('ref=')[1].split('&')[0] : null);
+const refUrl = 'https://t.me/' + botUsername + '?start=' + userId;
 
 let currentBalance = 0;
 let gigaSDK = null;

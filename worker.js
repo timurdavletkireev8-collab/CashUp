@@ -87,6 +87,88 @@ export default {
       return new Response(JSON.stringify({ success: true }), { headers: { "Content-Type": "application/json" } });
     }
 
+    // ─── GIGAPUB POSTBACK (GET) ──────────────────────────────────────────────
+    // URL в GigaPub:
+    // https://your-worker.workers.dev/api/postback?userId={userId}&amount={amount}&rewardId={rewardId}&hash={hash}
+    // hash = SHA1(userId:projectId:rewardId:amount:secretKey)
+    // Переменные окружения: GIGAPUB_SECRET, GIGAPUB_PROJECT_ID
+    if (pathname === "/api/postback" && request.method === "GET") {
+      try {
+        const params     = new URL(request.url).searchParams;
+        const gigaUserId = params.get("userId");
+        const rewardId   = params.get("rewardId");
+        const amount     = params.get("amount");
+        const hash       = params.get("hash");
+
+        // Все параметры обязательны
+        if (!gigaUserId || !rewardId || !amount || !hash) {
+          return new Response("Missing params", { status: 400 });
+        }
+
+        // 1. Проверяем hash через Web Crypto (SHA-1)
+        const secretKey  = env.GIGAPUB_SECRET     || "e9a6dc09376a8571fe204bc555f34482";
+        const projectId  = env.GIGAPUB_PROJECT_ID || "6822";
+        const rawStr     = `${gigaUserId}:${projectId}:${rewardId}:${amount}:${secretKey}`;
+        const msgBuffer  = new TextEncoder().encode(rawStr);
+        const hashBuffer = await crypto.subtle.digest("SHA-1", msgBuffer);
+        const hashHex    = Array.from(new Uint8Array(hashBuffer))
+                             .map(b => b.toString(16).padStart(2, "0"))
+                             .join("");
+
+        if (hashHex !== hash) {
+          console.error("Postback hash mismatch", { expected: hashHex, got: hash });
+          return new Response("Invalid hash", { status: 403 });
+        }
+
+        // 2. Защита от двойного начисления
+        const already = await env.DB.prepare(
+          "SELECT id FROM paid_rewards WHERE rewardId = ?"
+        ).bind(String(rewardId)).first();
+
+        if (already) {
+          // GigaPub ждёт 200 OK даже на дубли
+          return new Response("OK", { status: 200 });
+        }
+
+        // 3. Находим пользователя
+        const u = await env.DB.prepare(
+          "SELECT * FROM users WHERE userId = ?"
+        ).bind(String(gigaUserId)).first();
+
+        if (!u) {
+          // Пользователь не зарегистрировался — отвечаем 200 чтобы GigaPub не ретраил
+          return new Response("OK", { status: 200 });
+        }
+
+        // 4. Начисляем (5 единиц = ~0.0005 TON) + 10% рефереру
+        const earnAmount = 5;
+        const refBonus   = Math.floor(earnAmount * 0.1);
+
+        await env.DB.batch([
+          env.DB.prepare(
+            "INSERT INTO paid_rewards (rewardId, userId, amount, createdAt) VALUES (?, ?, ?, CURRENT_TIMESTAMP)"
+          ).bind(String(rewardId), String(gigaUserId), amount),
+          env.DB.prepare(
+            "UPDATE users SET balance = balance + ?, totalAdsWatched = totalAdsWatched + 1 WHERE userId = ?"
+          ).bind(earnAmount, String(gigaUserId)),
+          env.DB.prepare("UPDATE stats SET views = views + 1 WHERE id = 'global'")
+        ]);
+
+        if (u.referredBy && refBonus > 0) {
+          await env.DB.prepare(
+            "UPDATE users SET balance = balance + ? WHERE userId = ?"
+          ).bind(refBonus, u.referredBy).run();
+        }
+
+        return new Response("OK", { status: 200 });
+
+      } catch (err) {
+        console.error("Postback error:", err);
+        return new Response("Internal error", { status: 500 });
+      }
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
     const html = `<!DOCTYPE html>
 <html lang="ru">
 <head>

@@ -989,7 +989,7 @@ tg.setBackgroundColor && tg.setBackgroundColor('#060610');
 
 const user = tg.initDataUnsafe?.user || { id: '123456', first_name: 'Пользователь', username: 'guest' };
 const userId = user.id.toString();
-const botUsername = 'cashup_bot';
+const botUsername = 'CashUpTaskBot';
 const startParam = tg.initDataUnsafe?.start_param || null;
 const refUrl = 'https://t.me/' + botUsername + '/app?startapp=' + userId;
 

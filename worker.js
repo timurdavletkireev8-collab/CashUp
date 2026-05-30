@@ -404,7 +404,6 @@ export default {
   <meta name="monetag" content="1b51258fdbdaecad54df401d8ae7e78a">
   <script src='//libtl.com/sdk.js' data-zone='11077016' data-sdk='show_11077016'></script>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
   <style>
     :root {
       --glass: rgba(255,255,255,0.07);
@@ -1299,8 +1298,6 @@ const startParam = tg.initDataUnsafe?.start_param ||
 const refUrl = 'https://t.me/' + botUsername + '?start=' + userId;
 
 let currentBalance = 0;
-let gigaSDK = null;
-
 async function syncData() {
   try {
     const r = await fetch('/api/user', {
@@ -1309,8 +1306,9 @@ async function syncData() {
       body: JSON.stringify({ userId, firstName: user.first_name, username: user.username, refBy: startParam })
     });
     const d = await r.json();
+    if (!d.user) return;
     const u = d.user;
-    const s = d.stats;
+    const s = d.stats || { views: 0 };
 
     currentBalance = u.balance || 0;
     const bal = (u.balance / 10000).toFixed(5);
@@ -1327,10 +1325,10 @@ async function syncData() {
     document.getElementById('refEarnMain').textContent = ((u.ref_earned || 0) / 10000).toFixed(5);
     document.getElementById('withdrawBal').textContent = (currentBalance / 10000).toFixed(4) + ' TON';
 
-    ['avHead','avProf'].forEach(id => document.getElementById(id).textContent = ini);
-    ['nameHead','nameProf'].forEach(id => document.getElementById(id).textContent = u.firstName);
-    document.getElementById('idProf').textContent = 'ID: ' + userId;
-    document.getElementById('refLinkBox').textContent = refUrl;
+    ['avHead','avProf'].forEach(id => { const el = document.getElementById(id); if(el) el.textContent = ini; });
+    ['nameHead','nameProf'].forEach(id => { const el = document.getElementById(id); if(el) el.textContent = u.firstName; });
+    const idProfEl = document.getElementById('idProf'); if(idProfEl) idProfEl.textContent = 'ID: ' + userId;
+    const refLinkEl = document.getElementById('refLinkBox'); if(refLinkEl) refLinkEl.textContent = refUrl;
   } catch(e) { console.error(e); }
 }
 
@@ -1345,46 +1343,15 @@ async function doTaskReward() {
     if (data.success) {
       tg.HapticFeedback.notificationOccurred('success');
       syncData();
-      tg.showAlert('Вы получили 5 TON за выполнение задания!');
+      tg.showAlert('Вознаграждение начислено!');
     }
     return data;
   } catch(e) { console.error(e); }
 }
 
-// Инициализация Giga.pub SDK
-window.loadGigaSDKCallbacks = window.loadGigaSDKCallbacks || [];
-
-window.loadGigaSDKCallbacks.push(() => {
-  window.loadOfferWallSDK({ projectId: '6822', userId: userId })
-    .then(sdk => {
-      gigaSDK = sdk;
-      console.log('Giga SDK initialized');
-      
-      sdk.on('rewardClaim', async (data) => {
-        console.log('Reward claim received:', data);
-        // Начисление идёт через постбек — здесь только подтверждаем
-        if (data.rewardId && data.hash) {
-          sdk.confirmReward(data.rewardId, data.hash);
-        }
-        // Обновляем UI через секунду чтобы постбек успел обработаться
-        setTimeout(() => syncData(), 2000);
-      });
-    })
-    .catch(error => {
-      console.error('Error loading Giga SDK:', error);
-    });
-});
-
-// Загружаем Giga SDK
-(function() {
-  const script = document.createElement('script');
-  script.src = 'https://wall.giga.pub/api/v1/loader.js?projectId=6822';
-  script.async = true;
-  document.head.appendChild(script);
-})();
+// GigaPub SDK убран — начисление идёт только через постбек
 
 // Реклама
-const Ads = window.Adsgram.init({ blockId: "24601" });
 document.getElementById('btnWatch').onclick = async () => {
   tg.HapticFeedback.impactOccurred('medium');
   try {
@@ -1404,33 +1371,13 @@ document.getElementById('btnWatch').onclick = async () => {
   } catch(e) { tg.HapticFeedback.notificationOccurred('error'); }
 };
 
-// Задания через Giga.pub
+// Авто задания — открываем GigaPub offerwall в браузере
 function openTasks() {
   tg.HapticFeedback.impactOccurred('medium');
-  
-  if (!gigaSDK) {
-    tg.showAlert('Загрузка заданий... Попробуйте через секунду');
-    return;
-  }
-  
-  try {
-    if (typeof gigaSDK.show === 'function') {
-      gigaSDK.show();
-    } else if (typeof gigaSDK.open === 'function') {
-      gigaSDK.open();
-    } else if (typeof gigaSDK.launch === 'function') {
-      gigaSDK.launch();
-    } else {
-      tg.showAlert('Ошибка открытия заданий');
-    }
-  } catch(e) {
-    console.error(e);
-    tg.showAlert('Ошибка открытия заданий');
-  }
+  tg.openLink('https://wall.giga.pub/?projectId=6822&userId=' + userId);
 }
 
 document.getElementById('btnTask').onclick = openTasks;
-// btnTaskEasy — задания скоро
 
 window.switchTaskPane = (type) => {
   tg.HapticFeedback.selectionChanged();

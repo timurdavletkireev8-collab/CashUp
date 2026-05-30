@@ -1293,11 +1293,11 @@ tg.expand();
 tg.setHeaderColor && tg.setHeaderColor('#060610');
 tg.setBackgroundColor && tg.setBackgroundColor('#060610');
 
-const user = tg.initDataUnsafe?.user || { id: '123456', first_name: 'Пользователь', username: 'guest' };
+const user = (tg.initDataUnsafe && tg.initDataUnsafe.user) || { id: '123456', first_name: 'Пользователь', username: 'guest' };
 const userId = user.id.toString();
 const botUsername = 'CashUpTaskBot';
 // Реферал: сначала из start_param (startapp), потом из #ref= в хеше URL
-const startParam = tg.initDataUnsafe?.start_param ||
+const startParam = (tg.initDataUnsafe && tg.initDataUnsafe.start_param) ||
   (window.location.hash.includes('ref=') ? window.location.hash.split('ref=')[1].split('&')[0] : null);
 const refUrl = 'https://t.me/' + botUsername + '?start=' + userId;
 

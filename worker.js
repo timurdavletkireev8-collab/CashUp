@@ -1298,6 +1298,11 @@ const startParam = tg.initDataUnsafe?.start_param ||
 const refUrl = 'https://t.me/' + botUsername + '?start=' + userId;
 
 let currentBalance = 0;
+window._openLink = function(btn) {
+  var link = btn.getAttribute('data-link');
+  if (link) tg.openLink(link);
+};
+
 async function syncData() {
   try {
     const r = await fetch('/api/user', {
@@ -1577,7 +1582,7 @@ async function loadManualTasks() {
         '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">' +
           '<span style="font-size:12px;font-weight:800;color:var(--success);">+' + (t.reward/10000).toFixed(4) + ' TON</span>' +
           '<div style="display:flex;gap:6px;">' +
-            (t.link ? '<button onclick="javascript:window.open(\"' + t.link + '\",\'_blank\')" style="padding:8px 12px;border-radius:10px;background:rgba(0,180,255,0.2);border:1px solid rgba(0,180,255,0.35);color:var(--accent);font-size:12px;font-weight:700;cursor:pointer;">Перейти</button>' : '') +
+             (t.link ? '<button onclick="_openLink(this)" data-link="' + t.link + '" style="padding:8px 12px;border-radius:10px;background:rgba(0,180,255,0.2);border:1px solid rgba(0,180,255,0.35);color:var(--accent);font-size:12px;font-weight:700;cursor:pointer;">Перейти</button>' : '') +
             '<button onclick="claimTask(' + t.id + ')" style="padding:8px 12px;border-radius:10px;background:rgba(0,229,180,0.2);border:1px solid rgba(0,229,180,0.35);color:var(--success);font-size:12px;font-weight:700;cursor:pointer;">Выполнено</button>' +
           '</div>' +
         '</div>' +

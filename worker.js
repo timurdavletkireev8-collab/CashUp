@@ -182,9 +182,6 @@ export default {
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>CashUp</title>
   <meta name="monetag" content="1b51258fdbdaecad54df401d8ae7e78a">
-  <script src="https://5gvci.com/act/files/tag.min.js?z=11076947" data-cfasync="false" async></script>
-  <script>(function(s){s.dataset.zone='11076990',s.src='https://al5sm.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
-  <script>(function(s){s.dataset.zone='11076993',s.src='https://n6wxm.com/vignette.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
   <style>

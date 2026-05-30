@@ -991,7 +991,7 @@ const user = tg.initDataUnsafe?.user || { id: '123456', first_name: 'Польз�
 const userId = user.id.toString();
 const botUsername = 'CashUpTaskBot';
 const startParam = tg.initDataUnsafe?.start_param || null;
-const refUrl = 'https://t.me/' + botUsername + '?start=' + userId;
+const refUrl = 'https://t.me/' + botUsername + '/app?startapp=' + userId;
 
 let currentBalance = 0;
 let gigaSDK = null;

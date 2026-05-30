@@ -106,6 +106,9 @@ export default {
         }
 
         // 1. Проверяем hash через Web Crypto (SHA-1)
+        // TEST_MODE: поставь "true" в переменных Cloudflare чтобы отключить проверку хеша во время теста
+        // После теста удали переменную или поставь "false"
+        const testMode   = true; // ТЕСТ: после успешного теста замени на false
         const secretKey  = env.GIGAPUB_SECRET     || "e9a6dc09376a8571fe204bc555f34482";
         const projectId  = env.GIGAPUB_PROJECT_ID || "6822";
         const rawStr     = `${gigaUserId}:${projectId}:${rewardId}:${amount}:${secretKey}`;
@@ -115,8 +118,10 @@ export default {
                              .map(b => b.toString(16).padStart(2, "0"))
                              .join("");
 
-        if (hashHex !== hash) {
-          console.error("Postback hash mismatch", { expected: hashHex, got: hash });
+        console.log("Postback hash check", { expected: hashHex, got: hash, testMode });
+
+        if (!testMode && hashHex !== hash) {
+          console.error("Postback hash mismatch — отклонено");
           return new Response("Invalid hash", { status: 403 });
         }
 

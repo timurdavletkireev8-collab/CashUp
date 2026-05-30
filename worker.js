@@ -20,6 +20,7 @@ export default {
         }
       }
       const user = await env.DB.prepare("SELECT *, COALESCE(ref_earned, 0) as ref_earned FROM users WHERE userId = ?").bind(userId).first();
+      await env.DB.prepare("INSERT OR IGNORE INTO stats (id, views) VALUES ('global', 0)").run();
       const stats = await env.DB.prepare("SELECT views FROM stats WHERE id = 'global'").bind().first();
       return new Response(JSON.stringify({ user, stats }), { headers: { "Content-Type": "application/json" } });
     }
@@ -1310,15 +1311,16 @@ async function syncData() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId, firstName: user.first_name, username: user.username, refBy: startParam })
     });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
     const d = await r.json();
     const u = d.user;
-    const s = d.stats;
+    if (!u) throw new Error('No user in response');
 
     currentBalance = u.balance || 0;
-    const bal = (u.balance / 10000).toFixed(5);
+    const bal = (currentBalance / 10000).toFixed(5);
     const refs = u.referrals || 0;
     const ads = u.totalAdsWatched || 0;
-    const ini = u.firstName.charAt(0).toUpperCase();
+    const ini = (u.firstName || '?').charAt(0).toUpperCase();
 
     document.getElementById('balHead').textContent = bal;
     document.getElementById('profBal').innerHTML = bal + ' <span style="font-size:11px;color:var(--ton);">TON</span>';
@@ -1330,10 +1332,13 @@ async function syncData() {
     document.getElementById('withdrawBal').textContent = (currentBalance / 10000).toFixed(4) + ' TON';
 
     ['avHead','avProf'].forEach(id => document.getElementById(id).textContent = ini);
-    ['nameHead','nameProf'].forEach(id => document.getElementById(id).textContent = u.firstName);
+    ['nameHead','nameProf'].forEach(id => document.getElementById(id).textContent = u.firstName || '');
     document.getElementById('idProf').textContent = 'ID: ' + userId;
     document.getElementById('refLinkBox').textContent = refUrl;
-  } catch(e) { console.error(e); }
+  } catch(e) {
+    console.error('syncData error:', e);
+    document.getElementById('balHead').textContent = 'Ошибка';
+  }
 }
 
 async function doTaskReward() {

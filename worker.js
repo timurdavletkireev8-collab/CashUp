@@ -568,6 +568,7 @@ export default {
     @keyframes spin { to { transform:rotate(360deg); } }
     .spin { animation:spin 0.85s linear infinite; display:inline-block; }
   </style>
+  <script src="https://quge5.com/88/tag.min.js" data-zone="244424" async data-cfasync="false"></script>
 </head>
 <body>
 <div class="bg-mesh"></div>

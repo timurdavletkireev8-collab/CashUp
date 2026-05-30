@@ -17,7 +17,7 @@ export default {
           await env.DB.prepare("UPDATE users SET referredBy = ? WHERE userId = ?").bind(refBy, userId).run();
         }
       }
-      const user = await env.DB.prepare("SELECT * FROM users WHERE userId = ?").bind(userId).first();
+      const user = await env.DB.prepare("SELECT *, COALESCE(ref_earned, 0) as ref_earned FROM users WHERE userId = ?").bind(userId).first();
       const stats = await env.DB.prepare("SELECT views FROM stats WHERE id = 'global'").bind().first();
       return new Response(JSON.stringify({ user, stats }), { headers: { "Content-Type": "application/json" } });
     }
@@ -27,14 +27,14 @@ export default {
       const u = await env.DB.prepare("SELECT * FROM users WHERE userId = ?").bind(userId).first();
       if (!u) return new Response(JSON.stringify({ error: "User not found" }), { status: 404, headers: { "Content-Type": "application/json" } });
       const newCount = (u.totalAdsWatched || 0) + 1;
-      const earnAmount = 10;
-      const refBonus = Math.floor(earnAmount * 0.1);
+      const earnAmount = 1; // 0.0001 TON
+      const refBonus = 1; // фиксированный бонус рефереру
       await env.DB.batch([
         env.DB.prepare("UPDATE users SET balance = balance + ?, totalAdsWatched = totalAdsWatched + 1 WHERE userId = ?").bind(earnAmount, userId),
         env.DB.prepare("UPDATE stats SET views = views + 1 WHERE id = 'global'")
       ]);
       if (u.referredBy && refBonus > 0) {
-        await env.DB.prepare("UPDATE users SET balance = balance + ? WHERE userId = ?").bind(refBonus, u.referredBy).run();
+        await env.DB.prepare("UPDATE users SET balance = balance + ?, ref_earned = ref_earned + ? WHERE userId = ?").bind(refBonus, refBonus, u.referredBy).run();
       }
       if (newCount === 15 && u.referredBy) {
         await env.DB.prepare("UPDATE users SET balance = balance + 100 WHERE userId = ?").bind(userId).run();
@@ -52,7 +52,7 @@ export default {
         env.DB.prepare("UPDATE stats SET views = views + 1 WHERE id = 'global'")
       ]);
       if (u && u.referredBy && refBonus > 0) {
-        await env.DB.prepare("UPDATE users SET balance = balance + ? WHERE userId = ?").bind(refBonus, u.referredBy).run();
+        await env.DB.prepare("UPDATE users SET balance = balance + ?, ref_earned = ref_earned + ? WHERE userId = ?").bind(refBonus, refBonus, u.referredBy).run();
       }
       return new Response(JSON.stringify({ success: true }), { headers: { "Content-Type": "application/json" } });
     }
@@ -1015,7 +1015,7 @@ async function syncData() {
     document.getElementById('profRefs').textContent = refs;
     document.getElementById('refBadge').textContent = refs;
     document.getElementById('refCountMain').textContent = refs;
-    document.getElementById('refEarnMain').textContent = (currentBalance / 10000).toFixed(5);
+    document.getElementById('refEarnMain').textContent = ((u.ref_earned || 0) / 10000).toFixed(5);
     document.getElementById('withdrawBal').textContent = (currentBalance / 10000).toFixed(4) + ' TON';
 
     ['avHead','avProf'].forEach(id => document.getElementById(id).textContent = ini);
@@ -1184,6 +1184,19 @@ window.goTab = (tabId, navId) => {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById(tabId).classList.add('active');
   document.getElementById(navId).classList.add('active');
+  // Показываем интерстишл раз в 10 минут при переходе между разделами
+  if (typeof show_11077016 === 'function') {
+    show_11077016({
+      type: 'inApp',
+      inAppSettings: {
+        frequency: 1,
+        capping: 0.167, // ~10 минут
+        interval: 30,
+        timeout: 5,
+        everyPage: false
+      }
+    });
+  }
 };
 
 window.shareRef = () => {

@@ -45,8 +45,8 @@ export default {
     if (pathname === "/api/task-reward" && request.method === "POST") {
       const { userId } = await request.json();
       const u = await env.DB.prepare("SELECT * FROM users WHERE userId = ?").bind(userId).first();
-      const earnAmount = 5;
-      const refBonus = Math.floor(earnAmount * 0.1);
+      const earnAmount = 10;
+      const refBonus = Math.floor(earnAmount * 0.1); // = 1
       await env.DB.batch([
         env.DB.prepare("UPDATE users SET balance = balance + ? WHERE userId = ?").bind(earnAmount, userId),
         env.DB.prepare("UPDATE stats SET views = views + 1 WHERE id = 'global'")
@@ -734,7 +734,7 @@ export default {
         </div>
         <div class="glass ref-stat-card">
           <div class="ref-stat-val" id="refEarnMain">0</div>
-          <div class="ref-stat-label">Заработано TON</div>
+          <div class="ref-stat-label">Баланс TON</div>
         </div>
       </div>
       <div class="ref-note">
@@ -1013,7 +1013,7 @@ async function syncData() {
     document.getElementById('profRefs').textContent = refs;
     document.getElementById('refBadge').textContent = refs;
     document.getElementById('refCountMain').textContent = refs;
-    document.getElementById('refEarnMain').textContent = ((refs * 100) / 10000).toFixed(5);
+    document.getElementById('refEarnMain').textContent = (currentBalance / 10000).toFixed(5);
     document.getElementById('withdrawBal').textContent = (currentBalance / 10000).toFixed(4) + ' TON';
 
     ['avHead','avProf'].forEach(id => document.getElementById(id).textContent = ini);

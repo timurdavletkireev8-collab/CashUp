@@ -72,6 +72,226 @@ export default {
       return new Response(JSON.stringify(results), { headers: { "Content-Type": "application/json" } });
     }
 
+
+    // ─── HELPER: send Telegram notification ─────────────────────────────────
+    async function sendTg(token, chatId, text) {
+      try {
+        await fetch('https://api.telegram.org/bot' + token + '/sendMessage', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML' })
+        });
+      } catch(e) { console.error('sendTg error:', e); }
+    }
+
+    // ─── ADMIN: проверка прав ────────────────────────────────────────────────
+    function isAdmin(uid) { return String(uid) === '7020322752'; }
+
+    // ─── WITHDRAW с сохранением в таблицу ───────────────────────────────────
+    if (pathname === "/api/withdraw2" && request.method === "POST") {
+      const { userId, wallet, amount } = await request.json();
+      const u = await env.DB.prepare("SELECT * FROM users WHERE userId = ?").bind(userId).first();
+      if (!u) return new Response(JSON.stringify({ error: "Пользователь не найден" }), { status: 404, headers: { "Content-Type": "application/json" } });
+      const MIN_WITHDRAW = 5000;
+      if ((u.balance || 0) < MIN_WITHDRAW) {
+        return new Response(JSON.stringify({ error: "Минимальная сумма вывода — 0.5 TON" }), { status: 400, headers: { "Content-Type": "application/json" } });
+      }
+      const amountUnits = Math.floor(parseFloat(amount) * 10000);
+      if (amountUnits > u.balance) {
+        return new Response(JSON.stringify({ error: "Недостаточно средств на балансе" }), { status: 400, headers: { "Content-Type": "application/json" } });
+      }
+      // Резервируем баланс
+      await env.DB.prepare("UPDATE users SET balance = balance - ? WHERE userId = ?").bind(amountUnits, userId).run();
+      // Сохраняем заявку
+      await env.DB.prepare(
+        "INSERT INTO withdrawals (userId, firstName, username, wallet, amount, status, createdAt) VALUES (?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP)"
+      ).bind(userId, u.firstName, u.username || '', wallet, amountUnits).run();
+      // Уведомляем админа
+      const TOKEN = env.TOKEN || '';
+      if (TOKEN) {
+        await sendTg(TOKEN, '7020322752',
+          '💸 <b>Новая заявка на вывод</b>\n' +
+          '👤 ' + u.firstName + (u.username ? ' (@'+u.username+')' : '') + '\n' +
+          '🆔 ID: ' + userId + '\n' +
+          '💰 Сумма: ' + (amountUnits/10000).toFixed(4) + ' TON\n' +
+          '👛 Кошелёк: <code>' + wallet + '</code>'
+        );
+      }
+      return new Response(JSON.stringify({ success: true }), { headers: { "Content-Type": "application/json" } });
+    }
+
+    // ─── ADMIN: список выводов ───────────────────────────────────────────────
+    if (pathname === "/api/admin/withdrawals" && request.method === "POST") {
+      const { adminId } = await request.json();
+      if (!isAdmin(adminId)) return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { "Content-Type": "application/json" } });
+      const { results } = await env.DB.prepare(
+        "SELECT * FROM withdrawals ORDER BY createdAt DESC LIMIT 50"
+      ).all();
+      return new Response(JSON.stringify(results), { headers: { "Content-Type": "application/json" } });
+    }
+
+    // ─── ADMIN: одобрить/отклонить вывод ────────────────────────────────────
+    if (pathname === "/api/admin/withdraw-action" && request.method === "POST") {
+      const { adminId, withdrawId, action } = await request.json();
+      if (!isAdmin(adminId)) return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { "Content-Type": "application/json" } });
+      const w = await env.DB.prepare("SELECT * FROM withdrawals WHERE id = ?").bind(withdrawId).first();
+      if (!w) return new Response(JSON.stringify({ error: "Not found" }), { status: 404, headers: { "Content-Type": "application/json" } });
+      const TOKEN = env.TOKEN || '';
+      if (action === 'approve') {
+        await env.DB.prepare("UPDATE withdrawals SET status = 'approved' WHERE id = ?").bind(withdrawId).run();
+        if (TOKEN) await sendTg(TOKEN, w.userId,
+          '✅ <b>Вывод одобрен!</b>\n' +
+          'Сумма: <b>' + (w.amount/10000).toFixed(4) + ' TON</b> будет отправлена на кошелёк:\n<code>' + w.wallet + '</code>\nОбработка до 24 часов.'
+        );
+      } else {
+        // Возвращаем баланс
+        await env.DB.batch([
+          env.DB.prepare("UPDATE withdrawals SET status = 'rejected' WHERE id = ?").bind(withdrawId),
+          env.DB.prepare("UPDATE users SET balance = balance + ? WHERE userId = ?").bind(w.amount, w.userId)
+        ]);
+        if (TOKEN) await sendTg(TOKEN, w.userId,
+          '❌ <b>Вывод отклонён</b>\n' +
+          'Сумма ' + (w.amount/10000).toFixed(4) + ' TON возвращена на баланс.'
+        );
+      }
+      return new Response(JSON.stringify({ success: true }), { headers: { "Content-Type": "application/json" } });
+    }
+
+    // ─── ADMIN: добавить ручное задание ─────────────────────────────────────
+    if (pathname === "/api/admin/add-task" && request.method === "POST") {
+      const { adminId, title, description, link, reward } = await request.json();
+      if (!isAdmin(adminId)) return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { "Content-Type": "application/json" } });
+      await env.DB.prepare(
+        "INSERT INTO manual_tasks (title, description, link, reward, active, createdAt) VALUES (?, ?, ?, ?, 1, CURRENT_TIMESTAMP)"
+      ).bind(title, description, link, Math.floor(parseFloat(reward) * 10000)).run();
+      return new Response(JSON.stringify({ success: true }), { headers: { "Content-Type": "application/json" } });
+    }
+
+    // ─── ADMIN: удалить задание ──────────────────────────────────────────────
+    if (pathname === "/api/admin/delete-task" && request.method === "POST") {
+      const { adminId, taskId } = await request.json();
+      if (!isAdmin(adminId)) return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { "Content-Type": "application/json" } });
+      await env.DB.prepare("UPDATE manual_tasks SET active = 0 WHERE id = ?").bind(taskId).run();
+      return new Response(JSON.stringify({ success: true }), { headers: { "Content-Type": "application/json" } });
+    }
+
+    // ─── ПУБЛИЧНЫЕ: список ручных заданий ────────────────────────────────────
+    if (pathname === "/api/tasks") {
+      const { results } = await env.DB.prepare("SELECT * FROM manual_tasks WHERE active = 1 ORDER BY createdAt DESC").all();
+      return new Response(JSON.stringify(results), { headers: { "Content-Type": "application/json" } });
+    }
+
+    // ─── ПУБЛИЧНЫЕ: выполнить ручное задание ─────────────────────────────────
+    if (pathname === "/api/tasks/complete" && request.method === "POST") {
+      const { userId, taskId } = await request.json();
+      // Проверяем не выполнял ли уже
+      const already = await env.DB.prepare("SELECT id FROM completed_tasks WHERE userId = ? AND taskId = ?").bind(userId, taskId).first();
+      if (already) return new Response(JSON.stringify({ error: "Уже выполнено" }), { status: 400, headers: { "Content-Type": "application/json" } });
+      const task = await env.DB.prepare("SELECT * FROM manual_tasks WHERE id = ? AND active = 1").bind(taskId).first();
+      if (!task) return new Response(JSON.stringify({ error: "Задание не найдено" }), { status: 404, headers: { "Content-Type": "application/json" } });
+      const u = await env.DB.prepare("SELECT * FROM users WHERE userId = ?").bind(userId).first();
+      // Сохраняем заявку на проверку
+      await env.DB.prepare(
+        "INSERT INTO completed_tasks (userId, firstName, username, taskId, taskTitle, status, createdAt) VALUES (?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP)"
+      ).bind(userId, u ? u.firstName : '', u ? (u.username||'') : '', taskId, task.title).run();
+      // Уведомляем админа
+      const TOKEN = env.TOKEN || '';
+      if (TOKEN) {
+        await sendTg(TOKEN, '7020322752',
+          '📋 <b>Новая заявка на задание</b>\n' +
+          '👤 ' + (u ? u.firstName : userId) + (u && u.username ? ' (@'+u.username+')' : '') + '\n' +
+          '🆔 ID: ' + userId + '\n' +
+          '📌 Задание: ' + task.title
+        );
+      }
+      return new Response(JSON.stringify({ success: true, pending: true }), { headers: { "Content-Type": "application/json" } });
+    }
+
+    // ─── ADMIN: список заявок на задания ────────────────────────────────────
+    if (pathname === "/api/admin/task-requests" && request.method === "POST") {
+      const { adminId } = await request.json();
+      if (!isAdmin(adminId)) return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { "Content-Type": "application/json" } });
+      const { results } = await env.DB.prepare(
+        "SELECT * FROM completed_tasks WHERE status = 'pending' ORDER BY createdAt DESC"
+      ).all();
+      return new Response(JSON.stringify(results), { headers: { "Content-Type": "application/json" } });
+    }
+
+    // ─── ADMIN: одобрить/отклонить задание ──────────────────────────────────
+    if (pathname === "/api/admin/task-action" && request.method === "POST") {
+      const { adminId, completionId, action } = await request.json();
+      if (!isAdmin(adminId)) return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { "Content-Type": "application/json" } });
+      const ct = await env.DB.prepare("SELECT * FROM completed_tasks WHERE id = ?").bind(completionId).first();
+      if (!ct) return new Response(JSON.stringify({ error: "Not found" }), { status: 404, headers: { "Content-Type": "application/json" } });
+      const task = await env.DB.prepare("SELECT * FROM manual_tasks WHERE id = ?").bind(ct.taskId).first();
+      const TOKEN = env.TOKEN || '';
+      if (action === 'approve') {
+        const reward = task ? task.reward : 0;
+        const u = await env.DB.prepare("SELECT * FROM users WHERE userId = ?").bind(ct.userId).first();
+        const refBonus = Math.floor(reward * 0.1);
+        await env.DB.batch([
+          env.DB.prepare("UPDATE completed_tasks SET status = 'approved' WHERE id = ?").bind(completionId),
+          env.DB.prepare("UPDATE users SET balance = balance + ? WHERE userId = ?").bind(reward, ct.userId)
+        ]);
+        if (u && u.referredBy && refBonus > 0) {
+          await env.DB.prepare("UPDATE users SET balance = balance + ?, ref_earned = ref_earned + ? WHERE userId = ?").bind(refBonus, refBonus, u.referredBy).run();
+        }
+        if (TOKEN) await sendTg(TOKEN, ct.userId,
+          '✅ <b>Задание выполнено!</b>\n' +
+          'Задание: <b>' + ct.taskTitle + '</b>\n' +
+          'Начислено: <b>' + (reward/10000).toFixed(4) + ' TON</b>'
+        );
+      } else {
+        await env.DB.prepare("UPDATE completed_tasks SET status = 'rejected' WHERE id = ?").bind(completionId).run();
+        if (TOKEN) await sendTg(TOKEN, ct.userId,
+          '❌ <b>Задание отклонено</b>\n' +
+          'Задание: ' + ct.taskTitle + '\nПопробуй ещё раз или обратись в поддержку.'
+        );
+      }
+      return new Response(JSON.stringify({ success: true }), { headers: { "Content-Type": "application/json" } });
+    }
+
+    // ─── ADMIN: поиск пользователя ──────────────────────────────────────────
+    if (pathname === "/api/admin/user-search" && request.method === "POST") {
+      const { adminId, query } = await request.json();
+      if (!isAdmin(adminId)) return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { "Content-Type": "application/json" } });
+      const u = await env.DB.prepare(
+        "SELECT * FROM users WHERE userId = ? OR username = ?"
+      ).bind(query, query.replace('@','')).first();
+      if (!u) return new Response(JSON.stringify({ error: "Пользователь не найден" }), { status: 404, headers: { "Content-Type": "application/json" } });
+      // Рефералы
+      const { results: refs } = await env.DB.prepare(
+        "SELECT firstName, username, totalAdsWatched FROM users WHERE referredBy = ?"
+      ).bind(u.userId).all();
+      return new Response(JSON.stringify({ user: u, refs }), { headers: { "Content-Type": "application/json" } });
+    }
+
+    // ─── ADMIN: выдать/забрать баланс ───────────────────────────────────────
+    if (pathname === "/api/admin/adjust-balance" && request.method === "POST") {
+      const { adminId, query, amount, action } = await request.json();
+      if (!isAdmin(adminId)) return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { "Content-Type": "application/json" } });
+      const u = await env.DB.prepare(
+        "SELECT * FROM users WHERE userId = ? OR username = ?"
+      ).bind(query, query.replace('@','')).first();
+      if (!u) return new Response(JSON.stringify({ error: "Пользователь не найден" }), { status: 404, headers: { "Content-Type": "application/json" } });
+      const units = Math.floor(parseFloat(amount) * 10000);
+      if (action === 'add') {
+        await env.DB.prepare("UPDATE users SET balance = balance + ? WHERE userId = ?").bind(units, u.userId).run();
+      } else {
+        await env.DB.prepare("UPDATE users SET balance = MAX(0, balance - ?) WHERE userId = ?").bind(units, u.userId).run();
+      }
+      const updated = await env.DB.prepare("SELECT * FROM users WHERE userId = ?").bind(u.userId).first();
+      const TOKEN = env.TOKEN || '';
+      if (TOKEN) {
+        const sign = action === 'add' ? '+' : '-';
+        await sendTg(TOKEN, u.userId,
+          (action === 'add' ? '💰' : '💸') + ' <b>Изменение баланса</b>\n' +
+          sign + (units/10000).toFixed(4) + ' TON от администратора.'
+        );
+      }
+      return new Response(JSON.stringify({ success: true, newBalance: updated.balance }), { headers: { "Content-Type": "application/json" } });
+    }
+
     if (pathname === "/api/withdraw" && request.method === "POST") {
       const { userId, wallet, amount } = await request.json();
       const u = await env.DB.prepare("SELECT * FROM users WHERE userId = ?").bind(userId).first();
@@ -605,8 +825,8 @@ export default {
         <div class="sec-sub">Выполняй задания и получай вознаграждение в TON</div>
       </div>
       <div class="task-toggle">
-        <button class="task-toggle-btn active" id="btnHard" onclick="switchTaskPane('hard')">Сложные задания</button>
-        <button class="task-toggle-btn" id="btnEasy" onclick="switchTaskPane('easy')">Лёгкие задания</button>
+        <button class="task-toggle-btn active" id="btnHard" onclick="switchTaskPane('hard')">Авто задания</button>
+        <button class="task-toggle-btn" id="btnEasy" onclick="switchTaskPane('easy')">Ручные задания</button>
       </div>
       <div id="paneHard" class="task-pane active">
         <div class="glass section-card">
@@ -652,14 +872,14 @@ export default {
               <polyline points="8.5,12 11,14.5 15.5,9.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </div>
-          <div class="card-title">Простые задания</div>
+          <div class="card-title">Ручные задания</div>
           <div class="card-desc">
-            Быстрые действия — подписки, переходы, оценки. Занимают несколько секунд,
-            зато стабильно пополняют твой TON-баланс каждый день.
+            Задания добавлены администратором. Выполни действие и нажми кнопку — после проверки получишь вознаграждение в TON.
           </div>
-          <div style="margin-top:8px; padding:16px; background:rgba(0,229,180,0.06); border:1px solid rgba(0,229,180,0.15); border-radius:14px; text-align:center;">
-            <div style="font-size:13px; font-weight:800; color:var(--success); margin-bottom:6px;">Скоро</div>
-            <div style="font-size:12px; color:var(--text-dim); line-height:1.65;">Лёгкие задания появятся в ближайшем обновлении. Следи за новостями!</div>
+          <div id="manualTasksList" style="margin-top:12px;">
+            <div style="text-align:center;padding:24px;color:var(--text-dim);">
+              <svg class="spin" width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" stroke-dasharray="31" stroke-dashoffset="10"/></svg>
+            </div>
           </div>
         </div>
       </div>
@@ -858,6 +1078,88 @@ export default {
     </div>
   </div>
 
+
+  <!-- ===== TAB: ADMIN ===== -->
+  <div id="tabAdmin" class="tab">
+    <div class="sec-title" style="margin-bottom:4px;">Панель администратора</div>
+    <div class="sec-sub" style="margin-bottom:16px;">Управление платформой CashUp</div>
+
+    <!-- ВЫВОДЫ -->
+    <div class="glass card" style="margin-bottom:13px;">
+      <div style="font-size:16px;font-weight:800;margin-bottom:14px;display:flex;align-items:center;gap:8px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="1" y="4" width="22" height="16" rx="2" stroke="currentColor" stroke-width="2"/><path d="M1 10h22" stroke="currentColor" stroke-width="2"/></svg>
+        Заявки на вывод
+      </div>
+      <div id="adminWithdrawals">
+        <div style="text-align:center;padding:20px;color:var(--text-dim);">Загрузка...</div>
+      </div>
+    </div>
+
+    <!-- ПРОВЕРКА ЗАДАНИЙ -->
+    <div class="glass card" style="margin-bottom:13px;">
+      <div style="font-size:16px;font-weight:800;margin-bottom:14px;display:flex;align-items:center;gap:8px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="2"/><polyline points="8,12 10.5,14.5 16,9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        Заявки на задания
+      </div>
+      <div id="adminTaskRequests">
+        <div style="text-align:center;padding:20px;color:var(--text-dim);">Загрузка...</div>
+      </div>
+    </div>
+
+    <!-- ДОБАВИТЬ ЗАДАНИЕ -->
+    <div class="glass card" style="margin-bottom:13px;">
+      <div style="font-size:16px;font-weight:800;margin-bottom:14px;">Добавить ручное задание</div>
+      <input class="glass-input" id="adminTaskTitle" placeholder="Название задания" />
+      <input class="glass-input" id="adminTaskDesc" placeholder="Описание" />
+      <input class="glass-input" id="adminTaskLink" placeholder="Ссылка (https://...)" />
+      <input class="glass-input" id="adminTaskReward" type="number" placeholder="Награда в TON (например 0.01)" step="0.001" />
+      <button class="btn-primary" onclick="adminAddTask()" style="margin-top:4px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+        Добавить задание
+      </button>
+    </div>
+
+    <!-- СПИСОК ТЕКУЩИХ ЗАДАНИЙ -->
+    <div class="glass card" style="margin-bottom:13px;">
+      <div style="font-size:16px;font-weight:800;margin-bottom:14px;">Активные задания</div>
+      <div id="adminTasksList">
+        <div style="text-align:center;padding:20px;color:var(--text-dim);">Загрузка...</div>
+      </div>
+    </div>
+
+    <!-- ПОИСК ПОЛЬЗОВАТЕЛЯ -->
+    <div class="glass card" style="margin-bottom:13px;">
+      <div style="font-size:16px;font-weight:800;margin-bottom:14px;">Поиск пользователя</div>
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <input class="glass-input" id="adminUserQuery" placeholder="ID или @username" style="margin-bottom:0;flex:1;" />
+        <button class="btn-primary" onclick="adminSearchUser()" style="width:auto;padding:14px 16px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/><line x1="21" y1="21" x2="16.65" y2="16.65" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div id="adminUserResult"></div>
+    </div>
+
+    <!-- ВЫДАЧА/ОТНЯТИЕ ДЕНЕГ -->
+    <div class="glass card" style="margin-bottom:13px;">
+      <div style="font-size:16px;font-weight:800;margin-bottom:14px;">Управление балансом</div>
+      <input class="glass-input" id="adminBalQuery" placeholder="ID или @username" />
+      <input class="glass-input" id="adminBalAmount" type="number" placeholder="Сумма в TON" step="0.001" />
+      <div style="display:flex;gap:8px;margin-top:4px;">
+        <button class="btn-primary" onclick="adminAdjustBalance('add')" style="background:linear-gradient(135deg,rgba(0,229,180,0.35),rgba(0,180,255,0.3));border-color:rgba(0,229,180,0.4);">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+          Выдать
+        </button>
+        <button class="btn-primary" onclick="adminAdjustBalance('subtract')" style="background:linear-gradient(135deg,rgba(255,95,126,0.35),rgba(124,92,252,0.3));border-color:rgba(255,95,126,0.4);">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+          Забрать
+        </button>
+      </div>
+      <div id="adminBalResult" style="margin-top:10px;font-size:13px;color:var(--success);"></div>
+    </div>
+
+    <div style="height:10px;"></div>
+  </div>
+
   <div class="nav-dock">
     <div class="nav-inner">
       <div class="nav-item active" id="nav-tasks" onclick="goTab('tabTasks','nav-tasks')">
@@ -902,6 +1204,13 @@ export default {
           <line x1="12" y1="11" x2="12" y2="16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
         </svg>
         <span>Инфо</span>
+        <div class="nav-dot"></div>
+      </div>
+      <div class="nav-item" id="nav-admin" onclick="goTab('tabAdmin','nav-admin')" style="display:none;">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+        </svg>
+        <span>Админ</span>
         <div class="nav-dot"></div>
       </div>
     </div>
@@ -1156,14 +1465,14 @@ window.doWithdraw = async () => {
 
   tg.HapticFeedback.impactOccurred('medium');
   try {
-    const r = await fetch('/api/withdraw', {
+    const r = await fetch('/api/withdraw2', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId, wallet, amount })
     });
     const d = await r.json();
     if (d.success) {
       tg.HapticFeedback.notificationOccurred('success');
-      tg.showAlert('Заявка на вывод ' + amount + ' TON отправлена. Обработка в течение 24 часов.');
+      tg.showAlert('Заявка на вывод ' + amount + ' TON отправлена! Вы получите уведомление после проверки.');
       document.getElementById('walletInput').value = '';
       document.getElementById('amountInput').value = '';
       closeModal('modalWithdraw');
@@ -1290,6 +1599,274 @@ window.closeModal = (id) => {
 window.bgClose = (id, e) => {
   if (e.target === document.getElementById(id)) closeModal(id);
 };
+
+
+// ═══════════════════════════════════════════════════════════
+// ADMIN PANEL JS
+// ═══════════════════════════════════════════════════════════
+const ADMIN_ID = '7020322752';
+const isAdmin = userId === ADMIN_ID;
+
+// Показываем вкладку админа если текущий юзер — админ
+if (isAdmin) {
+  document.getElementById('nav-admin').style.display = 'flex';
+}
+
+// ── Загрузка ручных заданий (публичная) ─────────────────────────────────────
+async function loadManualTasks() {
+  try {
+    const r = await fetch('/api/tasks');
+    const list = await r.json();
+    const el = document.getElementById('manualTasksList');
+    if (!list.length) {
+      el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-dim);font-size:13px;">Заданий пока нет. Следи за обновлениями!</div>';
+      return;
+    }
+    let h = '';
+    list.forEach(t => {
+      h += '<div class="glass" style="padding:16px;margin-bottom:10px;border-radius:16px;">' +
+        '<div style="font-size:15px;font-weight:800;margin-bottom:6px;">' + t.title + '</div>' +
+        '<div style="font-size:12px;color:var(--text-dim);margin-bottom:10px;line-height:1.6;">' + t.description + '</div>' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">' +
+          '<span style="font-size:12px;font-weight:800;color:var(--success);">+' + (t.reward/10000).toFixed(4) + ' TON</span>' +
+          '<div style="display:flex;gap:6px;">' +
+            (t.link ? '<button onclick="tg.openLink(\'' + t.link + '\')" style="padding:8px 12px;border-radius:10px;background:rgba(0,180,255,0.2);border:1px solid rgba(0,180,255,0.35);color:var(--accent);font-size:12px;font-weight:700;cursor:pointer;">Перейти</button>' : '') +
+            '<button onclick="claimTask(' + t.id + ')" style="padding:8px 12px;border-radius:10px;background:rgba(0,229,180,0.2);border:1px solid rgba(0,229,180,0.35);color:var(--success);font-size:12px;font-weight:700;cursor:pointer;">Выполнено</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    });
+    el.innerHTML = h;
+  } catch(e) { console.error(e); }
+}
+
+async function claimTask(taskId) {
+  tg.HapticFeedback.impactOccurred('medium');
+  try {
+    const r = await fetch('/api/tasks/complete', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, taskId })
+    });
+    const d = await r.json();
+    if (d.success) {
+      tg.showAlert('Заявка отправлена! После проверки вознаграждение будет начислено.');
+      tg.HapticFeedback.notificationOccurred('success');
+    } else {
+      tg.showAlert(d.error || 'Ошибка');
+    }
+  } catch(e) { tg.showAlert('Ошибка соединения'); }
+}
+
+loadManualTasks();
+
+// ── ADMIN функции ────────────────────────────────────────────────────────────
+if (isAdmin) {
+
+  async function adminLoadWithdrawals() {
+    try {
+      const r = await fetch('/api/admin/withdrawals', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminId: userId })
+      });
+      const list = await r.json();
+      const el = document.getElementById('adminWithdrawals');
+      if (!list.length) { el.innerHTML = '<div style="color:var(--text-dim);font-size:13px;">Заявок нет</div>'; return; }
+      let h = '';
+      list.forEach(w => {
+        const statusColor = w.status === 'pending' ? 'var(--gold)' : w.status === 'approved' ? 'var(--success)' : 'var(--danger)';
+        const statusText = w.status === 'pending' ? 'Ожидает' : w.status === 'approved' ? 'Одобрено' : 'Отклонено';
+        h += '<div style="padding:12px;background:rgba(255,255,255,0.04);border-radius:12px;margin-bottom:8px;">' +
+          '<div style="display:flex;justify-content:space-between;margin-bottom:6px;">' +
+            '<span style="font-size:13px;font-weight:700;">' + w.firstName + (w.username ? ' @'+w.username : '') + '</span>' +
+            '<span style="font-size:11px;color:' + statusColor + ';font-weight:800;">' + statusText + '</span>' +
+          '</div>' +
+          '<div style="font-size:12px;color:var(--text-dim);margin-bottom:4px;">ID: ' + w.userId + '</div>' +
+          '<div style="font-size:13px;font-weight:800;color:var(--accent);margin-bottom:4px;">' + (w.amount/10000).toFixed(4) + ' TON</div>' +
+          '<div style="font-size:11px;color:var(--text-dim);margin-bottom:8px;word-break:break-all;">' + w.wallet + '</div>' +
+          (w.status === 'pending' ? 
+            '<div style="display:flex;gap:6px;">' +
+              '<button onclick="adminWithdrawAction(' + w.id + ',\'approve\')" style="flex:1;padding:8px;border-radius:10px;background:rgba(0,229,180,0.2);border:1px solid rgba(0,229,180,0.3);color:var(--success);font-size:12px;font-weight:800;cursor:pointer;">Одобрить</button>' +
+              '<button onclick="adminWithdrawAction(' + w.id + ',\'reject\')" style="flex:1;padding:8px;border-radius:10px;background:rgba(255,95,126,0.2);border:1px solid rgba(255,95,126,0.3);color:var(--danger);font-size:12px;font-weight:800;cursor:pointer;">Отклонить</button>' +
+            '</div>' : '') +
+        '</div>';
+      });
+      el.innerHTML = h;
+    } catch(e) { console.error(e); }
+  }
+
+  window.adminWithdrawAction = async (withdrawId, action) => {
+    tg.HapticFeedback.impactOccurred('medium');
+    try {
+      const r = await fetch('/api/admin/withdraw-action', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminId: userId, withdrawId, action })
+      });
+      const d = await r.json();
+      if (d.success) { tg.HapticFeedback.notificationOccurred('success'); adminLoadWithdrawals(); }
+    } catch(e) {}
+  };
+
+  async function adminLoadTaskRequests() {
+    try {
+      const r = await fetch('/api/admin/task-requests', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminId: userId })
+      });
+      const list = await r.json();
+      const el = document.getElementById('adminTaskRequests');
+      if (!list.length) { el.innerHTML = '<div style="color:var(--text-dim);font-size:13px;">Заявок нет</div>'; return; }
+      let h = '';
+      list.forEach(ct => {
+        h += '<div style="padding:12px;background:rgba(255,255,255,0.04);border-radius:12px;margin-bottom:8px;">' +
+          '<div style="font-size:13px;font-weight:700;margin-bottom:4px;">' + ct.firstName + (ct.username ? ' @'+ct.username : '') + '</div>' +
+          '<div style="font-size:12px;color:var(--text-dim);margin-bottom:4px;">ID: ' + ct.userId + '</div>' +
+          '<div style="font-size:13px;color:var(--accent);margin-bottom:8px;">📌 ' + ct.taskTitle + '</div>' +
+          '<div style="display:flex;gap:6px;">' +
+            '<button onclick="adminTaskAction(' + ct.id + ',\'approve\')" style="flex:1;padding:8px;border-radius:10px;background:rgba(0,229,180,0.2);border:1px solid rgba(0,229,180,0.3);color:var(--success);font-size:12px;font-weight:800;cursor:pointer;">Одобрить</button>' +
+            '<button onclick="adminTaskAction(' + ct.id + ',\'reject\')" style="flex:1;padding:8px;border-radius:10px;background:rgba(255,95,126,0.2);border:1px solid rgba(255,95,126,0.3);color:var(--danger);font-size:12px;font-weight:800;cursor:pointer;">Отклонить</button>' +
+          '</div>' +
+        '</div>';
+      });
+      el.innerHTML = h;
+    } catch(e) { console.error(e); }
+  }
+
+  window.adminTaskAction = async (completionId, action) => {
+    tg.HapticFeedback.impactOccurred('medium');
+    try {
+      const r = await fetch('/api/admin/task-action', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminId: userId, completionId, action })
+      });
+      const d = await r.json();
+      if (d.success) { tg.HapticFeedback.notificationOccurred('success'); adminLoadTaskRequests(); }
+    } catch(e) {}
+  };
+
+  async function adminLoadActiveTasks() {
+    try {
+      const r = await fetch('/api/tasks');
+      const list = await r.json();
+      const el = document.getElementById('adminTasksList');
+      if (!list.length) { el.innerHTML = '<div style="color:var(--text-dim);font-size:13px;">Нет активных заданий</div>'; return; }
+      let h = '';
+      list.forEach(t => {
+        h += '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06);">' +
+          '<div style="flex:1;">' +
+            '<div style="font-size:13px;font-weight:700;">' + t.title + '</div>' +
+            '<div style="font-size:11px;color:var(--success);">+' + (t.reward/10000).toFixed(4) + ' TON</div>' +
+          '</div>' +
+          '<button onclick="adminDeleteTask(' + t.id + ')" style="padding:6px 12px;border-radius:9px;background:rgba(255,95,126,0.2);border:1px solid rgba(255,95,126,0.3);color:var(--danger);font-size:11px;font-weight:800;cursor:pointer;">Удалить</button>' +
+        '</div>';
+      });
+      el.innerHTML = h;
+    } catch(e) {}
+  }
+
+  window.adminDeleteTask = async (taskId) => {
+    tg.HapticFeedback.impactOccurred('medium');
+    try {
+      await fetch('/api/admin/delete-task', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminId: userId, taskId })
+      });
+      adminLoadActiveTasks(); loadManualTasks();
+    } catch(e) {}
+  };
+
+  window.adminAddTask = async () => {
+    const title = document.getElementById('adminTaskTitle').value.trim();
+    const description = document.getElementById('adminTaskDesc').value.trim();
+    const link = document.getElementById('adminTaskLink').value.trim();
+    const reward = document.getElementById('adminTaskReward').value;
+    if (!title || !reward) { tg.showAlert('Заполни название и награду'); return; }
+    tg.HapticFeedback.impactOccurred('medium');
+    try {
+      const r = await fetch('/api/admin/add-task', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminId: userId, title, description, link, reward })
+      });
+      const d = await r.json();
+      if (d.success) {
+        tg.HapticFeedback.notificationOccurred('success');
+        document.getElementById('adminTaskTitle').value = '';
+        document.getElementById('adminTaskDesc').value = '';
+        document.getElementById('adminTaskLink').value = '';
+        document.getElementById('adminTaskReward').value = '';
+        adminLoadActiveTasks(); loadManualTasks();
+      }
+    } catch(e) {}
+  };
+
+  window.adminSearchUser = async () => {
+    const query = document.getElementById('adminUserQuery').value.trim();
+    if (!query) return;
+    tg.HapticFeedback.impactOccurred('light');
+    const el = document.getElementById('adminUserResult');
+    el.innerHTML = '<div style="color:var(--text-dim);font-size:13px;">Поиск...</div>';
+    try {
+      const r = await fetch('/api/admin/user-search', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminId: userId, query })
+      });
+      const d = await r.json();
+      if (d.error) { el.innerHTML = '<div style="color:var(--danger);font-size:13px;">' + d.error + '</div>'; return; }
+      const u = d.user;
+      const refs = d.refs || [];
+      let h = '<div style="padding:14px;background:rgba(255,255,255,0.04);border-radius:12px;">' +
+        '<div style="font-size:15px;font-weight:800;margin-bottom:8px;">' + u.firstName + (u.username ? ' @'+u.username : '') + '</div>' +
+        '<div style="font-size:12px;color:var(--text-dim);margin-bottom:4px;">ID: ' + u.userId + '</div>' +
+        '<div style="font-size:13px;margin-bottom:4px;">Баланс: <b style="color:var(--accent)">' + (u.balance/10000).toFixed(5) + ' TON</b></div>' +
+        '<div style="font-size:13px;margin-bottom:4px;">Просмотров рекламы: <b>' + (u.totalAdsWatched||0) + '</b></div>' +
+        '<div style="font-size:13px;margin-bottom:8px;">Рефералов: <b>' + (u.referrals||0) + '</b></div>';
+      if (refs.length) {
+        h += '<div style="font-size:12px;font-weight:700;color:var(--text-dim);margin-bottom:6px;">Список рефералов:</div>';
+        refs.forEach(ref => {
+          h += '<div style="font-size:12px;color:var(--text-mid);padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.05);">' +
+            ref.firstName + (ref.username ? ' @'+ref.username : '') + ' — ' + (ref.totalAdsWatched||0) + ' просм.' +
+          '</div>';
+        });
+      }
+      h += '</div>';
+      el.innerHTML = h;
+    } catch(e) { el.innerHTML = '<div style="color:var(--danger);font-size:13px;">Ошибка</div>'; }
+  };
+
+  window.adminAdjustBalance = async (action) => {
+    const query = document.getElementById('adminBalQuery').value.trim();
+    const amount = document.getElementById('adminBalAmount').value;
+    if (!query || !amount) { tg.showAlert('Заполни все поля'); return; }
+    tg.HapticFeedback.impactOccurred('medium');
+    try {
+      const r = await fetch('/api/admin/adjust-balance', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminId: userId, query, amount, action })
+      });
+      const d = await r.json();
+      if (d.success) {
+        tg.HapticFeedback.notificationOccurred('success');
+        document.getElementById('adminBalResult').textContent = 'Готово! Новый баланс: ' + (d.newBalance/10000).toFixed(5) + ' TON';
+        document.getElementById('adminBalQuery').value = '';
+        document.getElementById('adminBalAmount').value = '';
+      } else {
+        document.getElementById('adminBalResult').style.color = 'var(--danger)';
+        document.getElementById('adminBalResult').textContent = d.error || 'Ошибка';
+      }
+    } catch(e) { document.getElementById('adminBalResult').textContent = 'Ошибка соединения'; }
+  };
+
+  // Загружаем данные админки когда открывается вкладка
+  const origGoTab = window.goTab;
+  window.goTab = (tabId, navId) => {
+    origGoTab(tabId, navId);
+    if (tabId === 'tabAdmin') {
+      adminLoadWithdrawals();
+      adminLoadTaskRequests();
+      adminLoadActiveTasks();
+    }
+  };
+}
+// ═══════════════════════════════════════════════════════════
 
 syncData();
 </script>

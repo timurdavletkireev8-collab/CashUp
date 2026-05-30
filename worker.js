@@ -25,6 +25,7 @@ export default {
     if (pathname === "/api/reward" && request.method === "POST") {
       const { userId } = await request.json();
       const u = await env.DB.prepare("SELECT * FROM users WHERE userId = ?").bind(userId).first();
+      if (!u) return new Response(JSON.stringify({ error: "User not found" }), { status: 404, headers: { "Content-Type": "application/json" } });
       const newCount = (u.totalAdsWatched || 0) + 1;
       const earnAmount = 10;
       const refBonus = Math.floor(earnAmount * 0.1);
@@ -1004,6 +1005,7 @@ async function syncData() {
     });
     const d = await r.json();
     const u = d.user;
+    const s = d.stats;
 
     currentBalance = u.balance || 0;
     const bal = u.balance.toLocaleString();
@@ -1055,10 +1057,12 @@ window.loadGigaSDKCallbacks.push(() => {
       
       sdk.on('rewardClaim', async (data) => {
         console.log('Reward claim received:', data);
-        await doTaskReward();
+        // Начисление идёт через постбек — здесь только подтверждаем
         if (data.rewardId && data.hash) {
           sdk.confirmReward(data.rewardId, data.hash);
         }
+        // Обновляем UI через секунду чтобы постбек успел обработаться
+        setTimeout(() => syncData(), 2000);
       });
     })
     .catch(error => {

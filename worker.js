@@ -67,7 +67,7 @@ export default {
     if (pathname === "/api/my-referrals" && request.method === "POST") {
       const { userId } = await request.json();
       const { results } = await env.DB.prepare(
-        "SELECT firstName, username, totalAdsWatched FROM users WHERE referredBy = ? ORDER BY totalAdsWatched DESC"
+        "SELECT firstName, username, totalAdsWatched, lastActive FROM users WHERE referredBy = ? ORDER BY totalAdsWatched DESC"
       ).bind(userId).all();
       return new Response(JSON.stringify(results), { headers: { "Content-Type": "application/json" } });
     }
@@ -991,7 +991,7 @@ const user = tg.initDataUnsafe?.user || { id: '123456', first_name: 'Польз�
 const userId = user.id.toString();
 const botUsername = 'CashUpTaskBot';
 const startParam = tg.initDataUnsafe?.start_param || null;
-const refUrl = 'https://t.me/' + botUsername + '/app?startapp=' + userId;
+const refUrl = 'https://t.me/' + botUsername + '?start=' + userId;
 
 let currentBalance = 0;
 let gigaSDK = null;
@@ -1216,16 +1216,26 @@ window.openMyRefs = async () => {
     }
     let h = '<div style="font-size:11.5px;color:var(--text-dim);margin-bottom:14px;padding:10px 12px;background:rgba(0,180,255,0.06);border-radius:10px;border-left:2px solid rgba(0,180,255,0.38);">Реферал засчитывается после 15 просмотров рекламы</div>';
     list.forEach(u => {
-      const prog = Math.min(u.totalAdsWatched || 0, 15);
+      const watched = u.totalAdsWatched || 0;
+      const activated = u.activated == 1 || u.lastActive != null;
+      const prog = Math.min(watched, 15);
       const done = prog >= 15;
+      let statusHtml;
+      if (done) {
+        statusHtml = '<div class="badge-done">Засчитан</div>';
+      } else if (!activated || watched === 0) {
+        statusHtml = '<div style="font-size:10px;font-weight:700;color:rgba(255,95,126,0.85);text-transform:uppercase;letter-spacing:0.5px;">Не активирован</div>';
+      } else {
+        statusHtml = '<div class="badge-wait">В процессе</div>';
+      }
       h += '<div class="ref-item-m">' +
         '<div class="ref-av-m">' + u.firstName.charAt(0).toUpperCase() + '</div>' +
         '<div class="ref-prog-wrap">' +
           '<div class="ref-prog-name">' + u.firstName + (u.username ? ' <span style="color:var(--text-dim);font-size:11px;">@'+u.username+'</span>' : '') + '</div>' +
           '<div class="ref-prog-bar"><div class="ref-prog-fill" style="width:' + (prog/15)*100 + '%;"></div></div>' +
-          '<div class="ref-prog-num">' + prog + '/15 просмотров</div>' +
+          '<div class="ref-prog-num">' + watched + '/15 просмотров</div>' +
         '</div>' +
-        '<div>' + (done ? '<div class="badge-done">Засчитан</div>' : '<div class="badge-wait">В процессе</div>') + '</div>' +
+        '<div>' + statusHtml + '</div>' +
       '</div>';
     });
     document.getElementById('bodyRefs').innerHTML = h;

@@ -1048,7 +1048,7 @@ async function doTaskReward() {
 window.loadGigaSDKCallbacks = window.loadGigaSDKCallbacks || [];
 
 window.loadGigaSDKCallbacks.push(() => {
-  window.loadOfferWallSDK({ projectId: '6822' })
+  window.loadOfferWallSDK({ projectId: '6822', userId: userId })
     .then(sdk => {
       gigaSDK = sdk;
       console.log('Giga SDK initialized');

@@ -182,6 +182,7 @@ export default {
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>CashUp</title>
   <meta name="monetag" content="1b51258fdbdaecad54df401d8ae7e78a">
+  <script src="https://5gvci.com/act/files/tag.min.js?z=11076947" data-cfasync="false" async></script>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
   <style>
@@ -1077,8 +1078,10 @@ window.loadGigaSDKCallbacks.push(() => {
 const Ads = window.Adsgram.init({ blockId: "24601" });
 document.getElementById('btnWatch').onclick = async () => {
   tg.HapticFeedback.impactOccurred('medium');
+  // Открываем рекламную страницу
+  tg.openLink('https://omg10.com/4/11076952');
+  // Начисляем награду
   try {
-    await Ads.show();
     const r = await fetch('/api/reward', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId })

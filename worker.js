@@ -655,17 +655,9 @@ export default {
             Быстрые действия — подписки, переходы, оценки. Занимают несколько секунд,
             зато стабильно пополняют твой TON-баланс каждый день.
           </div>
-          <div class="pulse-wrap">
-            <div class="pulse-ring" style="border-color:rgba(0,229,180,0.4);"></div>
-            <button class="btn-primary" id="btnTaskEasy" style="background:linear-gradient(135deg,rgba(0,229,180,0.28),rgba(0,180,255,0.32));border-color:rgba(0,229,180,0.38);">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
-                <polyline points="20,6 9,17 4,12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              Выполнять задания
-            </button>
-          </div>
-          <div class="task-note">
-            <strong style="color:var(--text-mid);">Подсказка:</strong> задания обновляются ежедневно — заходи регулярно, чтобы не пропустить новые.
+          <div style="margin-top:8px; padding:16px; background:rgba(0,229,180,0.06); border:1px solid rgba(0,229,180,0.15); border-radius:14px; text-align:center;">
+            <div style="font-size:13px; font-weight:800; color:var(--success); margin-bottom:6px;">Скоро</div>
+            <div style="font-size:12px; color:var(--text-dim); line-height:1.65;">Лёгкие задания появятся в ближайшем обновлении. Следи за новостями!</div>
           </div>
         </div>
       </div>
@@ -1010,7 +1002,7 @@ async function syncData() {
     const s = d.stats;
 
     currentBalance = u.balance || 0;
-    const bal = u.balance.toLocaleString();
+    const bal = (u.balance / 10000).toFixed(5);
     const refs = u.referrals || 0;
     const ads = u.totalAdsWatched || 0;
     const ini = u.firstName.charAt(0).toUpperCase();
@@ -1021,7 +1013,7 @@ async function syncData() {
     document.getElementById('profRefs').textContent = refs;
     document.getElementById('refBadge').textContent = refs;
     document.getElementById('refCountMain').textContent = refs;
-    document.getElementById('refEarnMain').textContent = (refs * 0.01).toFixed(3);
+    document.getElementById('refEarnMain').textContent = ((refs * 100) / 10000).toFixed(5);
     document.getElementById('withdrawBal').textContent = (currentBalance / 10000).toFixed(4) + ' TON';
 
     ['avHead','avProf'].forEach(id => document.getElementById(id).textContent = ini);
@@ -1123,7 +1115,7 @@ function openTasks() {
 }
 
 document.getElementById('btnTask').onclick = openTasks;
-document.getElementById('btnTaskEasy').onclick = openTasks;
+// btnTaskEasy — задания скоро
 
 window.switchTaskPane = (type) => {
   tg.HapticFeedback.selectionChanged();
@@ -1261,7 +1253,7 @@ window.loadRating = async (type) => {
     const medals = ['', '🥇', '🥈', '🥉'];
     let h = '';
     list.forEach((u, i) => {
-      const val = type === 'balance' ? u.balance.toLocaleString() + ' TON' : (u.referrals || 0) + ' реф.';
+      const val = type === 'balance' ? (u.balance / 10000).toFixed(5) + ' TON' : (u.referrals || 0) + ' реф.';
       const pos = i < 3
         ? '<div class="r-pos" style="font-size:18px;">' + medals[i+1] + '</div>'
         : '<div class="r-pos" style="color:var(--text-dim);">#' + (i+1) + '</div>';

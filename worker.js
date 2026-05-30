@@ -13,8 +13,10 @@ export default {
       if (!existing && refBy && refBy !== userId) {
         const referer = await env.DB.prepare("SELECT * FROM users WHERE userId = ?").bind(refBy).first();
         if (referer) {
-          await env.DB.prepare("UPDATE users SET referrals = referrals + 1 WHERE userId = ?").bind(refBy).run();
-          await env.DB.prepare("UPDATE users SET referredBy = ? WHERE userId = ?").bind(refBy, userId).run();
+          await env.DB.batch([
+            env.DB.prepare("UPDATE users SET referrals = referrals + 1 WHERE userId = ?").bind(refBy),
+            env.DB.prepare("UPDATE users SET referredBy = ? WHERE userId = ?").bind(refBy, userId)
+          ]);
         }
       }
       const user = await env.DB.prepare("SELECT *, COALESCE(ref_earned, 0) as ref_earned FROM users WHERE userId = ?").bind(userId).first();
@@ -1493,6 +1495,7 @@ window.goTab = (tabId, navId) => {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById(tabId).classList.add('active');
   document.getElementById(navId).classList.add('active');
+  if (tabId === 'tabTasks') loadManualTasks();
   // Показываем интерстишл раз в 10 минут при переходе между разделами
   if (typeof show_11077016 === 'function') {
     show_11077016({
@@ -1640,7 +1643,7 @@ async function loadManualTasks() {
   } catch(e) { console.error(e); }
 }
 
-async function claimTask(taskId) {
+window.claimTask = async function claimTask(taskId) {
   tg.HapticFeedback.impactOccurred('medium');
   try {
     const r = await fetch('/api/tasks/complete', {

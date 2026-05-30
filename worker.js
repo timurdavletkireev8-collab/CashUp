@@ -1577,7 +1577,7 @@ async function loadManualTasks() {
         '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">' +
           '<span style="font-size:12px;font-weight:800;color:var(--success);">+' + (t.reward/10000).toFixed(4) + ' TON</span>' +
           '<div style="display:flex;gap:6px;">' +
-            (t.link ? '<button onclick="tg.openLink(\'' + t.link + '\')" style="padding:8px 12px;border-radius:10px;background:rgba(0,180,255,0.2);border:1px solid rgba(0,180,255,0.35);color:var(--accent);font-size:12px;font-weight:700;cursor:pointer;">Перейти</button>' : '') +
+            (t.link ? '<button onclick="tg.openLink('' + t.link + '')" style="padding:8px 12px;border-radius:10px;background:rgba(0,180,255,0.2);border:1px solid rgba(0,180,255,0.35);color:var(--accent);font-size:12px;font-weight:700;cursor:pointer;">Перейти</button>' : '') +
             '<button onclick="claimTask(' + t.id + ')" style="padding:8px 12px;border-radius:10px;background:rgba(0,229,180,0.2);border:1px solid rgba(0,229,180,0.35);color:var(--success);font-size:12px;font-weight:700;cursor:pointer;">Выполнено</button>' +
           '</div>' +
         '</div>' +
@@ -1632,8 +1632,8 @@ if (isAdmin) {
           '<div style="font-size:11px;color:var(--text-dim);margin-bottom:8px;word-break:break-all;">' + w.wallet + '</div>' +
           (w.status === 'pending' ? 
             '<div style="display:flex;gap:6px;">' +
-              '<button onclick="adminWithdrawAction(' + w.id + ',\'approve\')" style="flex:1;padding:8px;border-radius:10px;background:rgba(0,229,180,0.2);border:1px solid rgba(0,229,180,0.3);color:var(--success);font-size:12px;font-weight:800;cursor:pointer;">Одобрить</button>' +
-              '<button onclick="adminWithdrawAction(' + w.id + ',\'reject\')" style="flex:1;padding:8px;border-radius:10px;background:rgba(255,95,126,0.2);border:1px solid rgba(255,95,126,0.3);color:var(--danger);font-size:12px;font-weight:800;cursor:pointer;">Отклонить</button>' +
+              '<button onclick="adminWithdrawAction(' + w.id + ','approve')" style="flex:1;padding:8px;border-radius:10px;background:rgba(0,229,180,0.2);border:1px solid rgba(0,229,180,0.3);color:var(--success);font-size:12px;font-weight:800;cursor:pointer;">Одобрить</button>' +
+              '<button onclick="adminWithdrawAction(' + w.id + ','reject')" style="flex:1;padding:8px;border-radius:10px;background:rgba(255,95,126,0.2);border:1px solid rgba(255,95,126,0.3);color:var(--danger);font-size:12px;font-weight:800;cursor:pointer;">Отклонить</button>' +
             '</div>' : '') +
         '</div>';
       });
@@ -1669,8 +1669,8 @@ if (isAdmin) {
           '<div style="font-size:12px;color:var(--text-dim);margin-bottom:4px;">ID: ' + ct.userId + '</div>' +
           '<div style="font-size:13px;color:var(--accent);margin-bottom:8px;">📌 ' + ct.taskTitle + '</div>' +
           '<div style="display:flex;gap:6px;">' +
-            '<button onclick="adminTaskAction(' + ct.id + ',\'approve\')" style="flex:1;padding:8px;border-radius:10px;background:rgba(0,229,180,0.2);border:1px solid rgba(0,229,180,0.3);color:var(--success);font-size:12px;font-weight:800;cursor:pointer;">Одобрить</button>' +
-            '<button onclick="adminTaskAction(' + ct.id + ',\'reject\')" style="flex:1;padding:8px;border-radius:10px;background:rgba(255,95,126,0.2);border:1px solid rgba(255,95,126,0.3);color:var(--danger);font-size:12px;font-weight:800;cursor:pointer;">Отклонить</button>' +
+            '<button onclick="adminTaskAction(' + ct.id + ','approve')" style="flex:1;padding:8px;border-radius:10px;background:rgba(0,229,180,0.2);border:1px solid rgba(0,229,180,0.3);color:var(--success);font-size:12px;font-weight:800;cursor:pointer;">Одобрить</button>' +
+            '<button onclick="adminTaskAction(' + ct.id + ','reject')" style="flex:1;padding:8px;border-radius:10px;background:rgba(255,95,126,0.2);border:1px solid rgba(255,95,126,0.3);color:var(--danger);font-size:12px;font-weight:800;cursor:pointer;">Отклонить</button>' +
           '</div>' +
         '</div>';
       });
